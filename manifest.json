@@ -1,0 +1,26 @@
+{
+  "name": "Presensi SMA Islam Daarul Ilmi Depok",
+  "short_name": "Presensi Daarul Ilmi",
+  "description": "Sistem Presensi Guru & Karyawan SMA Islam Daarul Ilmi Depok",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#065f46",
+  "theme_color": "#2e7d32",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "img/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

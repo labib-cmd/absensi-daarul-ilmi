@@ -1,0 +1,83 @@
+/* ====================================================================
+   STYLE.CSS - Standar Desain Visual & Tema Presensi Daarul Ilmi Depok
+   ==================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --primary-green-dark: #1b5e20;
+  --primary-green: #2e7d32;
+  --primary-green-light: #4caf50;
+  --bg-slate: #f8faf9;
+  --text-main: #1e293b;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-slate);
+  color: var(--text-main);
+}
+
+/* Header Lengkung Khas Mobile */
+.curved-header {
+  background: linear-gradient(135deg, var(--primary-green-dark) 0%, var(--primary-green) 100%);
+  border-bottom-left-radius: 32px;
+  border-bottom-right-radius: 32px;
+}
+
+/* Kartu Mengambang Halus (Human-Crafted Look) */
+.card-float {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px -5px rgba(46, 125, 50, 0.08);
+  border: 1px solid rgba(232, 245, 233, 0.8);
+}
+
+/* Input Rounded Pill */
+.input-pill {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.input-pill:focus-within {
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+}
+
+/* Tombol Pill Modern dengan Micro-Interactions */
+.btn-pill {
+  border-radius: 50px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px -4px rgba(46, 125, 50, 0.3);
+}
+
+.btn-pill:active {
+  transform: translateY(0);
+}
+
+/* Animasi Fade-In Halus */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* Sembunyikan scrollbar bawaan */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

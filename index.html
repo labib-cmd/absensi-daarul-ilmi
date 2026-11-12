@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi Guru - Sekolah Islam Daarul Ilmi Depok</title>
+  
+  <!-- PWA Meta & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2e7d32">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Presensi Daarul Ilmi">
+  <link rel="apple-touch-icon" href="img/logo.jpg">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS Client v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- SheetJS (Excel .xlsx Exporter) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Stylesheet Modern Terpisah -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="min-h-screen pb-12 antialiased">
+
+  <div class="max-w-md mx-auto">
+    <!-- HEADER CURVED -->
+    <div id="mainHeader" class="curved-header text-white px-6 pt-8 pb-12 shadow-lg relative overflow-hidden">
+      <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+      <div class="flex items-center justify-between relative z-10">
+        <div class="flex items-center space-x-3">
+          <div class="w-12 h-12 bg-white p-1 rounded-2xl flex items-center justify-center shadow-md overflow-hidden flex-shrink-0">
+            <img src="img/logo.jpg" alt="Logo SMA Islam Daarul Ilmi Depok" class="w-full h-full object-contain">
+          </div>
+          <div>
+            <h1 class="text-xs tracking-wider uppercase opacity-80 font-medium">SMA Islam</h1>
+            <p class="text-base font-bold tracking-tight">Daarul Ilmi Depok</p>
+          </div>
+        </div>
+        <button id="btnLogout" onclick="handleLogout()" class="hidden bg-white/10 hover:bg-white/20 backdrop-blur-md p-2 rounded-full text-white transition">
+          <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <!-- USER WELCOME BANNER -->
+      <div id="userWelcome" class="hidden mt-6 pt-4 border-t border-white/15">
+        <p class="text-xs text-emerald-100">Assalamu'alaikum,</p>
+        <h2 id="displayUserName" class="text-lg font-bold">Memuat...</h2>
+        <span id="displayUserRole" class="inline-block mt-1 px-3 py-0.5 bg-emerald-800/60 text-emerald-100 text-[10px] font-semibold rounded-full border border-emerald-400/30">
+          Guru
+        </span>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="px-5 -mt-6 relative z-20 space-y-5">
+
+      <!-- VIEW 1: LOGIN -->
+      <div id="viewLogin" class="space-y-3">
+
+        <!-- KARTU FORM LOGIN -->
+        <div id="loginFormCard" class="card-float p-6 sm:p-7 space-y-5 relative overflow-hidden">
+          
+          <div class="absolute -top-10 -right-10 w-28 h-28 bg-emerald-50 rounded-full blur-xl pointer-events-none"></div>
+
+          <!-- Header Kartu: Logo Resmi & Selamat Datang -->
+          <div class="text-center space-y-3 relative z-10">
+            <div class="inline-flex p-2.5 bg-white rounded-2xl shadow-md border border-emerald-100 mx-auto">
+              <img src="img/logo.jpg" alt="Logo SMA Islam Daarul Ilmi Depok" class="w-24 h-24 object-contain rounded-xl">
+            </div>
+            <div>
+              <h2 class="text-2xl font-black text-slate-800 tracking-tight">Selamat Datang di</h2>
+              <p class="text-xs text-slate-400 font-medium">Sistem Presensi SMA Islam Daarul Ilmi Depok</p>
+            </div>
+          </div>
+
+          <form id="formLogin" onsubmit="handleLogin(event)" class="space-y-4 relative z-10">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">Username or Email</label>
+              <div class="input-pill flex items-center px-3.5 py-2.5">
+                <i data-lucide="mail" class="w-4 h-4 text-emerald-700 mr-2.5 flex-shrink-0"></i>
+                <input type="email" id="loginEmail" required placeholder="Enter your email" class="w-full text-xs outline-none bg-transparent text-slate-800 placeholder-slate-400 font-medium">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">Password</label>
+              <div class="input-pill flex items-center px-3.5 py-2.5 relative">
+                <i data-lucide="lock" class="w-4 h-4 text-emerald-700 mr-2.5 flex-shrink-0"></i>
+                <input type="password" id="loginPassword" required placeholder="Enter your password" class="w-full text-xs outline-none bg-transparent text-slate-800 placeholder-slate-400 pr-8 font-medium">
+                <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 text-slate-400 hover:text-slate-600">
+                  <i id="iconEye" data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="pt-1"></div>
+
+            <button type="submit" id="btnLoginSubmit" class="btn-pill w-full py-3.5 bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-xs font-extrabold tracking-wide shadow-md hover:shadow-lg flex items-center justify-center space-x-2 transition-all">
+              <span>MASUK APLIKASI</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </form>
+
+          <div class="pt-2 border-t border-slate-100 text-center relative z-10">
+            <p class="text-[10px] text-slate-400">Presensi Guru & Karyawan Sekolah Islam Daarul Ilmi</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- VIEW 2: DASHBOARD GURU -->
+      <div id="viewGuru" class="hidden space-y-5">
+        <div class="card-float p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="calendar" class="w-4 h-4 text-emerald-700"></i>
+              <span id="txtHariIni" class="text-xs font-bold text-slate-700">Hari Ini</span>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-800 font-semibold rounded-md border border-emerald-200/50">Google Maps Geofencing (300m)</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+              <span class="text-[10px] font-medium text-slate-500 block">Absen Masuk</span>
+              <p id="guruJamMasuk" class="text-base font-extrabold text-slate-800">--:--</p>
+              <span id="guruStatusMasuk" class="inline-block text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-200 text-slate-600">Belum</span>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+              <span class="text-[10px] font-medium text-slate-500 block">Absen Pulang</span>
+              <p id="guruJamPulang" class="text-base font-extrabold text-slate-800">--:--</p>
+              <span id="guruStatusPulang" class="inline-block text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-200 text-slate-600">Belum</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-2">
+            <button id="btnAbsenMasuk" onclick="openAbsenModal('MASUK')" class="btn-pill py-3 bg-[#2e7d32] text-white text-xs font-bold shadow flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed">
+              <i data-lucide="camera" class="w-4 h-4"></i>
+              <span>Absen Masuk</span>
+            </button>
+            <button id="btnAbsenPulang" onclick="openAbsenModal('PULANG')" class="btn-pill py-3 bg-amber-600 text-white text-xs font-bold shadow flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+              <span>Absen Pulang</span>
+            </button>
+          </div>
+
+          <button onclick="openIzinModal()" class="btn-pill w-full py-2.5 bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold shadow flex items-center justify-center space-x-1.5">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            <span>Ajukan Perizinan (Izin / Sakit / Cuti)</span>
+          </button>
+        </div>
+
+        <div class="card-float p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-800">Riwayat Presensi Pribadi</h3>
+            <span class="text-[10px] text-slate-400">Server Side Data</span>
+          </div>
+
+          <div class="input-pill flex items-center px-3 py-1.5">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 mr-2"></i>
+            <input type="text" id="searchRiwayatGuru" onkeyup="debounceLoadRiwayatGuru()" placeholder="Cari tanggal..." class="w-full text-xs outline-none bg-transparent">
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-[11px]">
+              <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                <tr>
+                  <th class="p-2">Tanggal</th>
+                  <th class="p-2">Masuk</th>
+                  <th class="p-2">Pulang</th>
+                </tr>
+              </thead>
+              <tbody id="tblRiwayatGuru" class="divide-y divide-slate-100">
+              </tbody>
+            </table>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
+            <button id="btnPrevGuru" onclick="changePageGuru(-1)" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg disabled:opacity-40">Prev</button>
+            <span id="pageInfoGuru" class="text-slate-500 font-medium">Hal 1 dari 1</span>
+            <button id="btnNextGuru" onclick="changePageGuru(1)" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg disabled:opacity-40">Next</button>
+          </div>
+        </div>
+
+        <!-- STATUS PERIZINAN GURU -->
+        <div class="card-float p-5 space-y-3">
+          <h3 class="text-xs font-bold text-slate-800 flex items-center justify-between">
+            <span>Status Pengajuan Izin Anda</span>
+            <i data-lucide="clock" class="w-4 h-4 text-sky-600"></i>
+          </h3>
+          <div id="listIzinGuru" class="space-y-2">
+            <p class="text-center text-xs text-slate-400 py-3">Memuat status izin...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 3: DASHBOARD ADMIN -->
+      <div id="viewAdmin" class="hidden space-y-5">
+        <div class="card-float p-5 space-y-3">
+          <h3 class="text-xs font-bold text-slate-800 flex items-center justify-between">
+            <span>Monitoring Realtime Hari Ini</span>
+            <i data-lucide="activity" class="w-4 h-4 text-emerald-600"></i>
+          </h3>
+
+          <div class="grid grid-cols-2 gap-2 text-center">
+            <button type="button" id="btnStatAll" onclick="filterMonitoringRealtime('ALL')" class="p-2.5 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl border border-emerald-300 ring-2 ring-emerald-500/40 transition flex flex-col items-center justify-center cursor-pointer active:scale-95">
+              <span class="text-[9px] text-emerald-700 font-semibold block">Total Guru</span>
+              <p id="admTotalGuru" class="text-sm font-black text-emerald-900">0</p>
+            </button>
+            <button type="button" id="btnStatDatang" onclick="filterMonitoringRealtime('DATANG')" class="p-2.5 bg-blue-50 hover:bg-blue-100/80 rounded-xl border border-blue-100 transition flex flex-col items-center justify-center cursor-pointer active:scale-95">
+              <span class="text-[9px] text-blue-700 font-semibold block">Sudah Absen Datang</span>
+              <p id="admSudahAbsen" class="text-sm font-black text-blue-900">0</p>
+            </button>
+            <button type="button" id="btnStatPulang" onclick="filterMonitoringRealtime('PULANG')" class="p-2.5 bg-amber-50 hover:bg-amber-100/80 rounded-xl border border-amber-100 transition flex flex-col items-center justify-center cursor-pointer active:scale-95">
+              <span class="text-[9px] text-amber-700 font-semibold block">Sudah Absen Pulang</span>
+              <p id="admSudahPulang" class="text-sm font-black text-amber-900">0</p>
+            </button>
+            <button type="button" id="btnStatBelum" onclick="filterMonitoringRealtime('BELUM')" class="p-2.5 bg-rose-50 hover:bg-rose-100/80 rounded-xl border border-rose-100 transition flex flex-col items-center justify-center cursor-pointer active:scale-95">
+              <span class="text-[9px] text-rose-700 font-semibold block">Belum Absen</span>
+              <p id="admBelumAbsen" class="text-sm font-black text-rose-900">0</p>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-float p-5 space-y-4">
+          <!-- ADMIN TABS -->
+          <div class="flex border-b border-slate-100 text-[11px] font-bold text-slate-500 overflow-x-auto whitespace-nowrap scrollbar-none">
+            <button id="tabMonitoringBtn" onclick="switchAdminTab('monitoring')" class="pb-2 border-b-2 border-emerald-700 text-emerald-700 px-2">Status Guru</button>
+            <button id="tabRekapBtn" onclick="switchAdminTab('rekap')" class="pb-2 border-b-2 border-transparent px-2">Rekap Data</button>
+            <button id="tabIzinBtn" onclick="switchAdminTab('izin')" class="pb-2 border-b-2 border-transparent px-2">Approval Izin</button>
+            <button id="tabSettingsBtn" onclick="switchAdminTab('settings')" class="pb-2 border-b-2 border-transparent px-2">Lokasi & Jam Kerja</button>
+          </div>
+
+          <!-- PANEL 1: MONITORING REALTIME -->
+          <div id="panelMonitoring" class="space-y-3">
+            <div id="listRealtimeGuru" class="space-y-2">
+            </div>
+          </div>
+
+          <!-- PANEL 2: REKAP DATA -->
+          <div id="panelRekap" class="hidden space-y-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="filterGuru" onchange="loadAdminData()" class="text-xs p-2 input-pill bg-white border border-slate-200 outline-none flex-1 min-w-[130px] font-semibold text-slate-700">
+                <option value="ALL">Semua Guru</option>
+              </select>
+              <select id="filterRange" onchange="loadAdminData()" class="text-xs p-2 input-pill bg-white border border-slate-200 outline-none">
+                <option value="today">Hari Ini</option>
+                <option value="pekanan">Pekanan (7 Hari)</option>
+                <option value="bulanan" selected>Bulanan (30 Hari)</option>
+                <option value="tahunan">Tahunan</option>
+                <option value="all">Semua Data</option>
+              </select>
+              <div class="input-pill flex items-center px-2 py-1.5 flex-1 min-w-[120px]">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 mr-1.5"></i>
+                <input type="text" id="searchAdminRekap" onkeyup="debounceLoadAdminData()" placeholder="Cari potongan nama..." class="w-full text-xs outline-none bg-transparent">
+              </div>
+            </div>
+
+            <!-- TOMBOL DOWNLOAD REKAP DATA -->
+            <div class="flex items-center space-x-2 pt-1">
+              <button type="button" id="btnDownloadPdf" onclick="downloadRekapPdf()" class="btn-pill flex-1 py-2 bg-rose-700 hover:bg-rose-800 text-white text-[11px] font-bold shadow flex items-center justify-center space-x-1">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                <span>Download PDF</span>
+              </button>
+              <button type="button" id="btnDownloadCsv" onclick="downloadRekapCsv()" class="btn-pill flex-1 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold shadow flex items-center justify-center space-x-1">
+                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                <span>Download Excel (.xlsx)</span>
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-[10px]">
+                <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                  <tr>
+                    <th class="p-1.5">Guru</th>
+                    <th class="p-1.5">Tgl</th>
+                    <th class="p-1.5">Masuk</th>
+                    <th class="p-1.5">Pulang</th>
+                  </tr>
+                </thead>
+                <tbody id="tblRekapAdmin" class="divide-y divide-slate-100">
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
+              <button id="btnPrevAdmin" onclick="changePageAdmin(-1)" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg disabled:opacity-40">Prev</button>
+              <span id="pageInfoAdmin" class="text-slate-500 font-medium">Hal 1 dari 1</span>
+              <button id="btnNextAdmin" onclick="changePageAdmin(1)" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg disabled:opacity-40">Next</button>
+            </div>
+          </div>
+
+          <!-- PANEL 3: APPROVAL PERIZINAN -->
+          <div id="panelIzin" class="hidden space-y-3">
+            <div id="listApprovalIzin" class="space-y-3">
+              <p class="text-center text-xs text-slate-400 py-4">Memuat daftar perizinan...</p>
+            </div>
+          </div>
+
+          <!-- PANEL 4: PENGATURAN LOKASI & JAM KERJA -->
+          <div id="panelSettings" class="hidden space-y-4 text-xs">
+            <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-200/60 space-y-2">
+              <h4 class="font-bold text-emerald-900 flex items-center space-x-1.5">
+                <i data-lucide="map-pin" class="w-4 h-4 text-emerald-700"></i>
+                <span>Pengaturan Lokasi Google Maps GPS</span>
+              </h4>
+              <p class="text-[10px] text-emerald-800 leading-relaxed">
+                Atur koordinat pusat lokasi sekolah menggunakan Google Maps. Radius dikunci <strong>maksimal 300 Meter</strong>.
+              </p>
+            </div>
+
+            <div class="space-y-3">
+              <div class="rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 h-44 relative">
+                <iframe id="iframeGoogleMaps" width="100%" height="100%" frameborder="0" style="border:0" src="https://maps.google.com/maps?q=-6.3982,106.8271&hl=id&z=17&output=embed" allowfullscreen></iframe>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">Latitude</label>
+                  <div class="input-pill px-3 py-2">
+                    <input type="text" id="cfgLat" placeholder="-6.3982" onchange="updateGoogleMapsPreview()" class="w-full bg-transparent outline-none text-slate-800 font-mono">
+                  </div>
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">Longitude</label>
+                  <div class="input-pill px-3 py-2">
+                    <input type="text" id="cfgLong" placeholder="106.8271" onchange="updateGoogleMapsPreview()" class="w-full bg-transparent outline-none text-slate-800 font-mono">
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" onclick="detectAdminCurrentLocationGPS()" class="btn-pill w-full py-2 bg-slate-800 text-white font-bold flex items-center justify-center space-x-1.5">
+                <i data-lucide="navigation" class="w-3.5 h-3.5"></i>
+                <span>Gunakan Lokasi GPS Saya Saat Ini (Google Maps)</span>
+              </button>
+
+              <div class="pt-2 border-t border-slate-100">
+                <label class="block font-semibold text-slate-600 mb-1">Batas Radius Presensi (Maksimal 300 Meter)</label>
+                <div class="input-pill px-3 py-2 flex items-center justify-between">
+                  <input type="number" id="cfgRadius" max="300" min="5" value="300" placeholder="300" class="w-full bg-transparent outline-none text-slate-800 font-bold">
+                  <span class="text-slate-400 font-bold ml-1">Meter</span>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100">
+                <h4 class="font-bold text-slate-800 mb-2 flex items-center space-x-1.5">
+                  <i data-lucide="clock" class="w-4 h-4 text-emerald-700"></i>
+                  <span>Pengaturan Jam Kerja Standar Karyawan</span>
+                </h4>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Jam Masuk</label>
+                    <div class="input-pill px-3 py-2">
+                      <input type="time" id="cfgJamMasuk" value="07:00" class="w-full bg-transparent outline-none font-bold text-slate-800">
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Jam Pulang</label>
+                    <div class="input-pill px-3 py-2">
+                      <input type="time" id="cfgJamPulang" value="16:00" class="w-full bg-transparent outline-none font-bold text-slate-800">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" onclick="saveAdminSettings()" class="btn-pill w-full py-3 bg-[#2e7d32] hover:bg-[#1b5e20] text-white font-bold shadow-md flex items-center justify-center space-x-2 text-xs">
+                <i data-lucide="save" class="w-4 h-4"></i>
+                <span>Simpan Pengaturan Google Maps & Jam Kerja</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- KOMPONEN MODAL -->
+  <!-- MODAL ABSENSI (Selfie & GPS) -->
+  <div id="modalAbsen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl animate-fade-in">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="modalTitle" class="text-xs font-bold text-slate-800">Presensi Kamera & GPS</h3>
+        <button onclick="closeAbsenModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="relative bg-slate-900 rounded-2xl overflow-hidden aspect-square flex items-center justify-center border border-slate-200">
+        <video id="videoPreview" autoplay playsinline muted class="w-full h-full object-cover"></video>
+        <canvas id="canvasSnap" class="hidden"></canvas>
+        <img id="imgCaptured" class="hidden w-full h-full object-cover">
+        
+        <!-- Native Camera Fallback UI -->
+        <div id="fallbackCamBox" class="hidden absolute inset-0 bg-slate-900 p-6 flex flex-col items-center justify-center text-center space-y-3 z-10">
+          <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400">
+            <i data-lucide="camera" class="w-6 h-6"></i>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">Stream kamera tidak diizinkan. Silakan ambil foto via Kamera HP Anda:</p>
+          <button type="button" onclick="triggerNativeCamera()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-full shadow flex items-center space-x-1.5">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            <span>Buka Kamera HP</span>
+          </button>
+        </div>
+        <input type="file" id="inputNativeCam" accept="image/*" capture="user" class="hidden" onchange="handleNativeCameraFile(event)">
+
+        <div id="gpsBadge" class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-white/20 z-20">
+          <i data-lucide="map-pin" class="w-3 h-3 text-emerald-400"></i>
+          <span id="gpsText">Mencari Koordinat GPS...</span>
+        </div>
+      </div>
+
+      <!-- STATUS VALIDASI RADIUS GPS -->
+      <div id="gpsStatusAlert" class="hidden p-2.5 rounded-xl text-[11px] font-semibold flex items-center space-x-2 text-left border">
+      </div>
+
+      <div id="boxAlasanKhusus" class="hidden space-y-1 text-left">
+        <label id="lblAlasanKhusus" class="block text-[11px] font-bold text-amber-700">Alasan Keterlambatan / Pulang Cepat:</label>
+        <div class="input-pill p-2 border-amber-300 bg-amber-50/50">
+          <textarea id="txtAlasanKhusus" rows="2" placeholder="Tuliskan keterangan alasan Anda..." class="w-full bg-transparent outline-none text-slate-800 text-xs resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="flex space-x-2">
+        <button id="btnSnap" onclick="takeSnapshot()" class="btn-pill flex-1 py-2.5 bg-slate-800 text-white text-xs font-bold flex items-center justify-center space-x-1">
+          <i data-lucide="camera" class="w-4 h-4"></i>
+          <span>Ambil Foto</span>
+        </button>
+        <button id="btnSubmitAbsen" onclick="submitAbsen()" disabled class="btn-pill flex-1 py-2.5 bg-[#2e7d32] text-white text-xs font-bold flex items-center justify-center space-x-1 disabled:opacity-40">
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+          <span>Kirim Presensi</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PREVIEW FOTO SELFIE -->
+  <div id="modalViewFoto" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm p-4 space-y-3 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="image" class="w-4 h-4 text-emerald-700"></i>
+          <div>
+            <h3 id="viewFotoTitle" class="text-xs font-bold text-slate-800">Bukti Foto Presensi</h3>
+            <p id="viewFotoSub" class="text-[10px] text-slate-400">Foto Selfie</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeFotoModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="relative bg-slate-100 rounded-2xl overflow-hidden aspect-square flex items-center justify-center border border-slate-200">
+        <div id="viewFotoLoader" class="absolute inset-0 flex items-center justify-center bg-slate-100 z-10">
+          <i data-lucide="loader" class="w-6 h-6 text-emerald-600 animate-spin"></i>
+        </div>
+        <img id="imgFotoDetail" src="" alt="Bukti Foto" class="w-full h-full object-cover" onload="document.getElementById('viewFotoLoader').classList.add('hidden')" onerror="handleFotoLoadError()">
+      </div>
+
+      <div class="flex space-x-2 pt-1">
+        <a id="btnBukaLinkFoto" href="#" target="_blank" class="btn-pill flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center space-x-1">
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          <span>Buka Asli</span>
+        </a>
+        <button type="button" onclick="closeFotoModal()" class="btn-pill flex-1 py-2 bg-slate-800 text-white text-xs font-bold">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PENGAJUAN PERIZINAN GURU -->
+  <div id="modalIzin" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+          <i data-lucide="file-text" class="w-4 h-4 text-sky-600"></i>
+          <span>Formulir Pengajuan Perizinan</span>
+        </h3>
+        <button onclick="closeIzinModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formIzin" onsubmit="submitIzinGuru(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">Jenis Perizinan</label>
+          <div class="input-pill px-3 py-2">
+            <select id="izinJenis" required class="w-full bg-transparent outline-none text-slate-800 font-semibold">
+              <option value="Izin">Izin (Keperluan Pribadi/Dinas)</option>
+              <option value="Sakit">Sakit</option>
+              <option value="Cuti">Cuti Tahunan / Melahirkan</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Mulai Tanggal</label>
+            <div class="input-pill px-2.5 py-2">
+              <input type="date" id="izinTglMulai" required class="w-full bg-transparent outline-none text-slate-800 font-medium">
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Selesai Tanggal</label>
+            <div class="input-pill px-2.5 py-2">
+              <input type="date" id="izinTglSelesai" required class="w-full bg-transparent outline-none text-slate-800 font-medium">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">Alasan / Keterangan</label>
+          <div class="input-pill p-2.5">
+            <textarea id="izinAlasan" rows="3" required placeholder="Tuliskan alasan perizinan Anda..." class="w-full bg-transparent outline-none text-slate-800 placeholder-slate-400 resize-none"></textarea>
+          </div>
+        </div>
+
+        <div class="pt-2 flex space-x-2">
+          <button type="button" onclick="closeIzinModal()" class="btn-pill flex-1 py-2.5 bg-slate-100 text-slate-600 font-bold">Batal</button>
+          <button type="submit" id="btnSubmitIzin" class="btn-pill flex-1 py-2.5 bg-sky-700 hover:bg-sky-800 text-white font-bold shadow">Kirim Pengajuan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT JAM PRESENSI GURU -->
+  <div id="modalEditJamGuru" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-xs p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <h3 class="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+          <i data-lucide="clock" class="w-4 h-4 text-emerald-700"></i>
+          <span>Edit Jam Presensi Guru</span>
+        </h3>
+        <button type="button" onclick="closeEditJamGuruModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formEditJamGuru" onsubmit="submitEditJamGuru(event)" class="space-y-3 text-xs">
+        <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100">
+          <span class="text-[10px] text-emerald-700 block">Nama Guru:</span>
+          <p id="editJamNamaGuru" class="font-bold text-slate-800 text-xs">-</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Jam Datang</label>
+            <div class="input-pill px-2.5 py-2">
+              <input type="time" id="editInputJamMasuk" step="1" class="w-full bg-transparent outline-none font-bold text-slate-800">
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Jam Pulang</label>
+            <div class="input-pill px-2.5 py-2">
+              <input type="time" id="editInputJamPulang" step="1" class="w-full bg-transparent outline-none font-bold text-slate-800">
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-1 flex space-x-2">
+          <button type="button" onclick="closeEditJamGuruModal()" class="btn-pill flex-1 py-2 bg-slate-100 text-slate-600 font-bold">Batal</button>
+          <button type="submit" id="btnSubmitEditJam" class="btn-pill flex-1 py-2 bg-[#2e7d32] hover:bg-[#1b5e20] text-white font-bold shadow">Simpan Jam</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL APPROVAL IZIN ADMIN -->
+  <div id="modalApprovalAdmin" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-xs p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h3 id="apprModalTitle" class="text-xs font-bold text-slate-800">Proses Persetujuan Izin</h3>
+        <button onclick="closeApprovalModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2 text-xs">
+        <p id="apprModalInfo" class="text-slate-600 leading-relaxed"></p>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">Catatan Admin (Opsional)</label>
+          <div class="input-pill p-2">
+            <input type="text" id="apprCatatan" placeholder="Catatan untuk guru..." class="w-full bg-transparent outline-none text-slate-800">
+          </div>
+        </div>
+      </div>
+
+      <div class="flex space-x-2 pt-2">
+        <button onclick="submitApprovalAdmin('REJECTED')" class="btn-pill flex-1 py-2 bg-rose-600 text-white text-xs font-bold">Tolak</button>
+        <button onclick="submitApprovalAdmin('APPROVED')" class="btn-pill flex-1 py-2 bg-emerald-700 text-white text-xs font-bold">Setujui</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NOTIFIKASI TOAST -->
+  <div id="modalNotif" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-xs p-5 text-center space-y-3 shadow-2xl">
+      <div id="notifIconBox" class="w-12 h-12 rounded-full mx-auto flex items-center justify-center bg-emerald-100 text-emerald-700">
+        <i id="notifIcon" data-lucide="check" class="w-6 h-6"></i>
+      </div>
+      <h4 id="notifTitle" class="text-sm font-bold text-slate-800">Informasi</h4>
+      <p id="notifMessage" class="text-xs text-slate-600 leading-relaxed"></p>
+      <button onclick="closeNotif()" class="btn-pill w-full py-2 bg-slate-800 text-white text-xs font-bold">Tutup</button>
+    </div>
+  </div>
+
+  <!-- SCRIPTS STANDAR TERPISAH (CLEAN & MODULAR) -->
+  <script src="js/api.js?v=2.5"></script>
+  <script src="js/auth.js?v=2.5"></script>
+  <script src="js/presensi.js?v=2.5"></script>
+  <script src="js/admin.js?v=2.5"></script>
+  <script src="js/app.js?v=2.5"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').catch(function(err) {
+          console.log('SW register error:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
