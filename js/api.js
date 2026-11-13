@@ -492,9 +492,29 @@ var API = {
       }
 
       var list = JSON.parse(localStorage.getItem('mock_izin_list') || '[]');
-      if (list.length === 0) {
-        list = [{ id_izin: 'IZN-001', jenis_izin: 'Izin', tgl_mulai: '2026-10-15', tgl_selesai: '2026-10-15', alasan: 'Urusan Keluarga', status: 'PENDING', catatan_admin: '' }];
+      resolve({ success: true, data: list });
+    });
+  },
+
+  // 6b. Ambil Semua Daftar Izin untuk Admin
+  getDaftarIzinAdmin: function() {
+    return new Promise(function(resolve) {
+      var sb = getSupabase();
+      if (sb) {
+        sb.from('perizinan').select('*').order('created_at', { ascending: false }).then(function(res) {
+          resolve({ success: true, data: res.data || [] });
+        }).catch(function(err) {
+          resolve({ success: false, message: err.message, data: [] });
+        });
+        return;
       }
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(resolve).getDaftarIzinAdmin();
+        return;
+      }
+
+      var list = JSON.parse(localStorage.getItem('mock_izin_list') || '[]');
       resolve({ success: true, data: list });
     });
   },
@@ -641,8 +661,20 @@ var API = {
           status: payload.status,
           catatan_admin: payload.catatan || ''
         }).eq('id_izin', payload.idIzin).then(function(res) {
-          if (res.error) resolve({ success: false, message: res.error.message });
-          else resolve({ success: true, message: 'Status izin berhasil diperbarui menjadi ' + payload.status + '.' });
+          if (res.error) {
+            resolve({ success: false, message: res.error.message });
+          } else {
+            var list = JSON.parse(localStorage.getItem('mock_izin_list') || '[]');
+            var found = list.find(function(x) { return x.id_izin === payload.idIzin; });
+            if (found) {
+              found.status = payload.status;
+              found.catatan_admin = payload.catatan || '';
+              localStorage.setItem('mock_izin_list', JSON.stringify(list));
+            }
+            resolve({ success: true, message: 'Status izin berhasil diperbarui menjadi ' + (payload.status === 'APPROVED' ? 'DISETUJUI' : 'DITOLAK') + '.' });
+          }
+        }).catch(function(err) {
+          resolve({ success: false, message: err.message });
         });
         return;
       }
@@ -651,7 +683,15 @@ var API = {
         google.script.run.withSuccessHandler(resolve).prosesApprovalIzin(payload);
         return;
       }
-      resolve({ success: true, message: 'Status izin berhasil diperbarui menjadi ' + payload.status + '.' });
+
+      var list = JSON.parse(localStorage.getItem('mock_izin_list') || '[]');
+      var found = list.find(function(x) { return x.id_izin === payload.idIzin; });
+      if (found) {
+        found.status = payload.status;
+        found.catatan_admin = payload.catatan || '';
+        localStorage.setItem('mock_izin_list', JSON.stringify(list));
+      }
+      resolve({ success: true, message: 'Status izin berhasil diperbarui menjadi ' + (payload.status === 'APPROVED' ? 'DISETUJUI' : 'DITOLAK') + '.' });
     });
   }
 };

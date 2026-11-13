@@ -419,11 +419,13 @@ function loadDaftarIzinAdmin() {
   var box = document.getElementById('listApprovalIzin');
   if (!box) return;
 
-  var list = JSON.parse(localStorage.getItem('mock_izin_list') || '[]');
-  if (list.length === 0) {
-    list = [{ id_izin: 'IZN-001', nama_guru: 'Ustadzah Fatimah', jenis_izin: 'Sakit', tgl_mulai: '2026-10-14', tgl_selesai: '2026-10-15', alasan: 'Demam tinggi dan flu', status: 'PENDING', catatan_admin: '' }];
-  }
-  renderApprovalIzinAdmin(list);
+  box.innerHTML = '<p class="text-center text-xs text-slate-400 py-4 flex items-center justify-center space-x-1.5"><i data-lucide="loader" class="w-4 h-4 animate-spin text-emerald-600"></i><span>Memuat data perizinan dari database...</span></p>';
+  if (window.lucide) lucide.createIcons();
+
+  API.getDaftarIzinAdmin().then(function(res) {
+    var list = (res && res.data) ? res.data : [];
+    renderApprovalIzinAdmin(list);
+  });
 }
 
 function renderApprovalIzinAdmin(list) {
@@ -431,32 +433,63 @@ function renderApprovalIzinAdmin(list) {
   box.innerHTML = '';
 
   if (!list || list.length === 0) {
-    box.innerHTML = '<p class="text-center text-xs text-slate-400 py-4">Belum ada data perizinan guru.</p>';
+    box.innerHTML = '<div class="p-6 text-center space-y-1"><i data-lucide="clipboard-check" class="w-8 h-8 text-slate-300 mx-auto"></i><p class="text-xs font-bold text-slate-500">Belum Ada Pengajuan Izin</p><p class="text-[10px] text-slate-400">Pengajuan izin, sakit, atau cuti dari guru akan muncul di sini.</p></div>';
+    if (window.lucide) lucide.createIcons();
     return;
   }
 
   list.forEach(function(item) {
-    var badgeClass = 'bg-amber-100 text-amber-800';
-    if (item.status === 'APPROVED') badgeClass = 'bg-emerald-100 text-emerald-800';
-    if (item.status === 'REJECTED') badgeClass = 'bg-rose-100 text-rose-800';
+    var badgeClass = 'bg-amber-100 text-amber-800 border border-amber-200';
+    var statusLabel = 'MENUNGGU PERSETUJUAN';
+    if (item.status === 'APPROVED') {
+      badgeClass = 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+      statusLabel = 'DISETUJUI';
+    } else if (item.status === 'REJECTED') {
+      badgeClass = 'bg-rose-100 text-rose-800 border border-rose-200';
+      statusLabel = 'DITOLAK';
+    }
 
     var card = document.createElement('div');
-    card.className = 'p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs';
+    card.className = 'p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-2 text-xs';
     
-    var header = '<div class="flex items-center justify-between"><span class="font-bold text-slate-800">' + item.nama_guru + '</span><span class="text-[9px] px-2 py-0.5 rounded-full font-bold ' + badgeClass + '">' + item.status + '</span></div>';
-    var sub = '<p class="text-[11px] font-semibold text-slate-600">' + item.jenis_izin + ' • ' + item.tgl_mulai + ' s/d ' + item.tgl_selesai + '</p>';
-    var desc = '<p class="text-[10px] text-slate-500 leading-snug">Alasan: ' + item.alasan + '</p>';
+    var header = '<div class="flex items-center justify-between border-b border-slate-100 pb-2">' +
+      '<div class="flex items-center space-x-2 min-w-0">' +
+        '<div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs flex-shrink-0">' +
+          (item.nama_guru ? item.nama_guru.charAt(0).toUpperCase() : 'G') +
+        '</div>' +
+        '<span class="font-bold text-slate-800 truncate text-xs sm:text-sm">' + (item.nama_guru || 'Guru') + '</span>' +
+      '</div>' +
+      '<span class="text-[9px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap ' + badgeClass + '">' + statusLabel + '</span>' +
+    '</div>';
+
+    var sub = '<div class="flex items-center justify-between text-[11px] text-slate-600 font-semibold">' +
+      '<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold">' + item.jenis_izin + '</span>' +
+      '<span class="text-slate-500 text-[10px]">' + item.tgl_mulai + (item.tgl_selesai && item.tgl_selesai !== item.tgl_mulai ? ' s/d ' + item.tgl_selesai : '') + '</span>' +
+    '</div>';
+
+    var desc = '<p class="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100 leading-snug"><strong>Alasan:</strong> ' + (item.alasan || '-') + '</p>';
     
     var action = '';
     if (item.status === 'PENDING') {
-      action = '<div class="pt-1 flex justify-end space-x-2"><button onclick="openApprovalModal(\'' + item.id_izin + '\', \'' + item.nama_guru + '\', \'' + item.jenis_izin + '\')" class="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] rounded-lg shadow">Proses Persetujuan</button></div>';
-    } else if (item.catatan_admin) {
-      action = '<p class="text-[10px] text-emerald-800 italic">Catatan Admin: ' + item.catatan_admin + '</p>';
+      action = '<div class="pt-1 flex justify-end space-x-2">' +
+        '<button onclick="openApprovalModal(\'' + item.id_izin + '\', \'' + (item.nama_guru || 'Guru').replace(/'/g, "\\'") + '\', \'' + item.jenis_izin + '\')" class="px-3.5 py-1.5 bg-[#2e7d32] hover:bg-[#1b5e20] text-white font-bold text-[10px] rounded-xl shadow flex items-center space-x-1 cursor-pointer transition">' +
+          '<i data-lucide="check-square" class="w-3.5 h-3.5"></i>' +
+          '<span>Proses Persetujuan</span>' +
+        '</button>' +
+      '</div>';
+    } else {
+      var iconStat = item.status === 'APPROVED' ? 'check-circle' : 'x-circle';
+      var textStatColor = item.status === 'APPROVED' ? 'text-emerald-700' : 'text-rose-700';
+      action = '<div class="pt-1 text-[10px] ' + textStatColor + ' flex items-center justify-between">' +
+        '<span class="flex items-center space-x-1 font-bold"><i data-lucide="' + iconStat + '" class="w-3.5 h-3.5"></i><span>' + (item.status === 'APPROVED' ? 'Sudah Disetujui Admin' : 'Ditolak Admin') + '</span></span>' +
+        (item.catatan_admin ? '<span class="text-slate-500 italic">Catatan: ' + item.catatan_admin + '</span>' : '') +
+      '</div>';
     }
 
     card.innerHTML = header + sub + desc + action;
     box.appendChild(card);
   });
+  if (window.lucide) lucide.createIcons();
 }
 
 function openApprovalModal(id, nama, jenis) {
