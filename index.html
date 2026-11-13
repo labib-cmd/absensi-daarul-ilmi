@@ -229,10 +229,19 @@
         <div class="card-float p-5 space-y-4">
           <!-- ADMIN TABS -->
           <div class="flex border-b border-slate-100 text-[11px] font-bold text-slate-500 overflow-x-auto whitespace-nowrap scrollbar-none">
-            <button id="tabMonitoringBtn" onclick="switchAdminTab('monitoring')" class="pb-2 border-b-2 border-emerald-700 text-emerald-700 px-2">Status Guru</button>
-            <button id="tabRekapBtn" onclick="switchAdminTab('rekap')" class="pb-2 border-b-2 border-transparent px-2">Rekap Data</button>
-            <button id="tabIzinBtn" onclick="switchAdminTab('izin')" class="pb-2 border-b-2 border-transparent px-2">Approval Izin</button>
-            <button id="tabSettingsBtn" onclick="switchAdminTab('settings')" class="pb-2 border-b-2 border-transparent px-2">Lokasi & Jam Kerja</button>
+            <button id="tabMonitoringBtn" onclick="switchAdminTab('monitoring')" class="pb-2 border-b-2 border-emerald-700 text-emerald-700 px-2 font-bold inline-flex items-center space-x-1.5">
+              <span>Status Guru</span>
+            </button>
+            <button id="tabRekapBtn" onclick="switchAdminTab('rekap')" class="pb-2 border-b-2 border-transparent px-2 font-bold inline-flex items-center space-x-1.5">
+              <span>Rekap Data</span>
+            </button>
+            <button id="tabIzinBtn" onclick="switchAdminTab('izin')" class="pb-2 border-b-2 border-transparent px-2 font-bold inline-flex items-center space-x-1.5">
+              <span>Approval Izin</span>
+              <span id="badgePendingIzin" class="hidden px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-rose-600 text-white shadow-sm animate-pulse">0</span>
+            </button>
+            <button id="tabSettingsBtn" onclick="switchAdminTab('settings')" class="pb-2 border-b-2 border-transparent px-2 font-bold inline-flex items-center space-x-1.5">
+              <span>Lokasi & Jam Kerja</span>
+            </button>
           </div>
 
           <!-- PANEL 1: MONITORING REALTIME -->
@@ -608,11 +617,11 @@
   </div>
 
   <!-- SCRIPTS STANDAR TERPISAH (CLEAN & MODULAR) -->
-  <script src="js/api.js?v=2.7"></script>
-  <script src="js/auth.js?v=2.7"></script>
-  <script src="js/presensi.js?v=2.7"></script>
-  <script src="js/admin.js?v=2.7"></script>
-  <script src="js/app.js?v=2.7"></script>
+  <script src="js/api.js?v=2.8"></script>
+  <script src="js/auth.js?v=2.8"></script>
+  <script src="js/presensi.js?v=2.8"></script>
+  <script src="js/admin.js?v=2.8"></script>
+  <script src="js/app.js?v=2.8"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {

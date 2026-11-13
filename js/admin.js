@@ -34,10 +34,11 @@ function switchAdminTab(tab) {
   var panI = document.getElementById('panelIzin');
   var panS = document.getElementById('panelSettings');
 
-  btnM.className = 'pb-2 border-b-2 border-transparent px-2';
-  btnR.className = 'pb-2 border-b-2 border-transparent px-2';
-  btnI.className = 'pb-2 border-b-2 border-transparent px-2';
-  btnS.className = 'pb-2 border-b-2 border-transparent px-2';
+  var baseClass = 'pb-2 border-b-2 px-2 font-bold inline-flex items-center space-x-1.5 transition-all ';
+  if (btnM) btnM.className = baseClass + (tab === 'monitoring' ? 'border-emerald-700 text-emerald-700' : 'border-transparent text-slate-500');
+  if (btnR) btnR.className = baseClass + (tab === 'rekap' ? 'border-emerald-700 text-emerald-700' : 'border-transparent text-slate-500');
+  if (btnI) btnI.className = baseClass + (tab === 'izin' ? 'border-emerald-700 text-emerald-700' : 'border-transparent text-slate-500');
+  if (btnS) btnS.className = baseClass + (tab === 'settings' ? 'border-emerald-700 text-emerald-700' : 'border-transparent text-slate-500');
 
   panM.classList.add('hidden');
   panR.classList.add('hidden');
@@ -45,17 +46,13 @@ function switchAdminTab(tab) {
   panS.classList.add('hidden');
 
   if (tab === 'monitoring') {
-    btnM.className = 'pb-2 border-b-2 border-emerald-700 text-emerald-700 px-2 font-bold';
     panM.classList.remove('hidden');
   } else if (tab === 'rekap') {
-    btnR.className = 'pb-2 border-b-2 border-emerald-700 text-emerald-700 px-2 font-bold';
     panR.classList.remove('hidden');
   } else if (tab === 'izin') {
-    btnI.className = 'pb-2 border-b-2 border-emerald-700 text-emerald-700 px-2 font-bold';
     panI.classList.remove('hidden');
     loadDaftarIzinAdmin();
   } else if (tab === 'settings') {
-    btnS.className = 'pb-2 border-b-2 border-emerald-700 text-emerald-700 px-2 font-bold';
     panS.classList.remove('hidden');
   }
 }
@@ -79,6 +76,8 @@ function loadAdminData() {
   var elGuru = document.getElementById('filterGuru');
   if (elRange) stateAdmin.range = elRange.value;
   if (elGuru) stateAdmin.filterGuru = elGuru.value;
+
+  updateBadgePendingIzin();
 
   API.getAdminDashboardData(stateAdmin.range, stateAdmin.search, stateAdmin.page, stateAdmin.limit, stateAdmin.filterGuru)
     .then(function(res) {
@@ -415,6 +414,26 @@ function saveAdminSettings() {
   });
 }
 
+function updateBadgePendingIzin(list) {
+  var badge = document.getElementById('badgePendingIzin');
+  if (!badge) return;
+
+  if (list && Array.isArray(list)) {
+    var pendingCount = list.filter(function(x) { return x && x.status === 'PENDING'; }).length;
+    if (pendingCount > 0) {
+      badge.innerText = pendingCount;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  } else {
+    API.getDaftarIzinAdmin().then(function(res) {
+      var items = (res && res.data) ? res.data : [];
+      updateBadgePendingIzin(items);
+    });
+  }
+}
+
 function loadDaftarIzinAdmin() {
   var box = document.getElementById('listApprovalIzin');
   if (!box) return;
@@ -424,6 +443,7 @@ function loadDaftarIzinAdmin() {
 
   API.getDaftarIzinAdmin().then(function(res) {
     var list = (res && res.data) ? res.data : [];
+    updateBadgePendingIzin(list);
     renderApprovalIzinAdmin(list);
   });
 }
@@ -513,6 +533,7 @@ function submitApprovalAdmin(status) {
     if (res.success) {
       showNotif('Status Diperbarui', res.message, true);
       loadDaftarIzinAdmin();
+      updateBadgePendingIzin();
     } else {
       showNotif('Gagal Memproses', res.message, false);
     }
