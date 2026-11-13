@@ -20,6 +20,83 @@ var cachedRekapData = [];
 var activeApprovalId = null;
 var activeEditGuru = null;
 
+var adminNotifiedIzinIds = JSON.parse(localStorage.getItem('daarulilmi_notified_izin') || '[]');
+var isAdminWatcherInitialized = false;
+
+function initAdminIzinWatcher() {
+  if (isAdminWatcherInitialized) return;
+  isAdminWatcherInitialized = true;
+
+  // Catat ID lama jika pertama kali aplikasi dibuka agar tidak spam notif data kemarin
+  API.getDaftarIzinAdmin().then(function(res) {
+    var items = (res && res.data) ? res.data : [];
+    if (adminNotifiedIzinIds.length === 0 && items.length > 0) {
+      items.forEach(function(it) {
+        if (adminNotifiedIzinIds.indexOf(it.id_izin) === -1) {
+          adminNotifiedIzinIds.push(it.id_izin);
+        }
+      });
+      localStorage.setItem('daarulilmi_notified_izin', JSON.stringify(adminNotifiedIzinIds.slice(-100)));
+    }
+  });
+
+  // Polling rutin pemantau izin masuk tiap 10 detik
+  if (!window.adminIzinPollInterval) {
+    window.adminIzinPollInterval = setInterval(checkIncomingIzinAdmin, 10000);
+  }
+
+  // Supabase Realtime Listener (aktif instan jika Supabase Realtime replication ON)
+  var sb = typeof getSupabase === 'function' ? getSupabase() : null;
+  if (sb && !window.adminSupabaseChannel) {
+    try {
+      window.adminSupabaseChannel = sb.channel('admin-perizinan-realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'perizinan' }, function() {
+          checkIncomingIzinAdmin();
+        })
+        .subscribe();
+    } catch (e) {}
+  }
+}
+
+function checkIncomingIzinAdmin() {
+  API.getDaftarIzinAdmin().then(function(res) {
+    var items = (res && res.data) ? res.data : [];
+    var pendingItems = items.filter(function(it) { return it && it.status === 'PENDING'; });
+    
+    // Perbarui badge merah
+    updateBadgePendingIzin(items);
+
+    // Filter izin pending baru yang belum pernah diberitahukan
+    var newPending = pendingItems.filter(function(it) {
+      return adminNotifiedIzinIds.indexOf(it.id_izin) === -1;
+    });
+
+    if (newPending.length > 0) {
+      newPending.forEach(function(item) {
+        adminNotifiedIzinIds.push(item.id_izin);
+        
+        // Pemicu notifikasi sistem (Pop-up HP/Desktop + Bel Suara)
+        if (typeof triggerSystemNotification === 'function') {
+          triggerSystemNotification('🔔 Pengajuan Izin Baru!', {
+            body: item.nama_guru + ' mengajukan ' + item.jenis_izin + ': ' + (item.alasan || '-'),
+            icon: 'img/logo.jpg',
+            tag: item.id_izin,
+            data: { action: 'open_izin', url: './index.html' }
+          });
+        }
+        showNotif('Izin Baru Masuk', item.nama_guru + ' mengajukan ' + item.jenis_izin + ' (' + (item.alasan || '-') + ').', true);
+      });
+
+      localStorage.setItem('daarulilmi_notified_izin', JSON.stringify(adminNotifiedIzinIds.slice(-100)));
+
+      // Jika admin sedang di tab izin, perbarui daftar tampilan seketika
+      if (stateAdmin.tab === 'izin') {
+        renderApprovalIzinAdmin(items);
+      }
+    }
+  });
+}
+
 function switchAdminTab(tab) {
   stateAdmin.tab = tab;
   localStorage.setItem('daarulilmi_last_tab', tab);
@@ -78,6 +155,7 @@ function loadAdminData() {
   if (elGuru) stateAdmin.filterGuru = elGuru.value;
 
   updateBadgePendingIzin();
+  initAdminIzinWatcher();
 
   API.getAdminDashboardData(stateAdmin.range, stateAdmin.search, stateAdmin.page, stateAdmin.limit, stateAdmin.filterGuru)
     .then(function(res) {

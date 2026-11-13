@@ -30,3 +30,26 @@ self.addEventListener('fetch', function(e) {
   );
 });
 
+// Penanganan Klik Notifikasi di HP / Desktop
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  var targetUrl = (event.notification.data && event.notification.data.url) ? event.notification.data.url : './index.html';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url && 'focus' in client) {
+          if (event.notification.data && event.notification.data.action === 'open_izin') {
+            client.postMessage({ type: 'SWITCH_TAB', tab: 'izin' });
+          }
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+

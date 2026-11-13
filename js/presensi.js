@@ -24,6 +24,14 @@ function loadGuruDashboard() {
   loadTodayStatusGuru();
   loadRiwayatGuru();
   loadIzinGuru();
+
+  if (!window.guruReminderInterval) {
+    window.guruReminderInterval = setInterval(function() {
+      if (currentUser && currentUser.role === 'Guru') {
+        loadTodayStatusGuru();
+      }
+    }, 60000);
+  }
 }
 
 function loadTodayStatusGuru() {
@@ -31,10 +39,57 @@ function loadTodayStatusGuru() {
   API.getTodayStatus(currentUser.id_user).then(function(res) {
     if (res.success && res.hasAbsen) {
       renderTodayCardGuru(res.data);
+      checkGuruAttendanceReminder(res.data);
     } else {
       renderTodayCardGuru(null);
+      checkGuruAttendanceReminder(null);
     }
   });
+}
+
+function checkGuruAttendanceReminder(todayAbsen) {
+  if (!currentUser || currentUser.role !== 'Guru') return;
+  if (typeof requestNotificationPermission === 'function') {
+    requestNotificationPermission();
+  }
+
+  var now = new Date();
+  var hours = now.getHours();
+  var minutes = now.getMinutes();
+  var totalMins = hours * 60 + minutes;
+  var todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+  // 1. Pengingat Datang Pagi (06:00 - 07:15) -> 360 s/d 435 menit
+  var sudahMasuk = todayAbsen && todayAbsen.jam_masuk;
+  if (!sudahMasuk) {
+    var keyDatang = 'notif_remind_datang_' + currentUser.id_user + '_' + todayKey;
+    if (totalMins >= 360 && totalMins <= 435 && !sessionStorage.getItem(keyDatang)) {
+      sessionStorage.setItem(keyDatang, '1');
+      if (typeof triggerSystemNotification === 'function') {
+        triggerSystemNotification('⏰ Pengingat Presensi Datang', {
+          body: 'Assalamu\'alaikum ' + currentUser.nama_guru + ', jangan lupa presensi datang sebelum pukul 07.00 WIB ya!',
+          icon: 'img/logo.jpg',
+          tag: 'reminder-datang-' + todayKey
+        });
+      }
+    }
+  }
+
+  // 2. Pengingat Pulang Sore (15:30 - 17:30) -> 930 s/d 1050 menit
+  var sudahPulang = todayAbsen && todayAbsen.jam_pulang;
+  if (sudahMasuk && !sudahPulang) {
+    var keyPulang = 'notif_remind_pulang_' + currentUser.id_user + '_' + todayKey;
+    if (totalMins >= 930 && totalMins <= 1050 && !sessionStorage.getItem(keyPulang)) {
+      sessionStorage.setItem(keyPulang, '1');
+      if (typeof triggerSystemNotification === 'function') {
+        triggerSystemNotification('🏠 Pengingat Presensi Pulang', {
+          body: 'Waktu kepulangan telah tiba, silakan lakukan presensi pulang ya!',
+          icon: 'img/logo.jpg',
+          tag: 'reminder-pulang-' + todayKey
+        });
+      }
+    }
+  }
 }
 
 function renderTodayCardGuru(data) {

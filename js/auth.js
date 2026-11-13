@@ -65,6 +65,11 @@ function onLoginSuccess(isRestored) {
   document.getElementById('displayUserName').innerText = currentUser.nama_guru;
   document.getElementById('displayUserRole').innerText = currentUser.role;
 
+  // Minta izin notifikasi jika belum disetel
+  if (typeof requestNotificationPermission === 'function') {
+    requestNotificationPermission();
+  }
+
   if (currentUser.role === 'Guru') {
     document.getElementById('viewGuru').classList.remove('hidden');
     loadGuruDashboard();
@@ -78,6 +83,14 @@ function onLoginSuccess(isRestored) {
 }
 
 function handleLogout() {
+  if (window.adminIzinPollInterval) {
+    clearInterval(window.adminIzinPollInterval);
+    window.adminIzinPollInterval = null;
+  }
+  if (window.guruReminderInterval) {
+    clearInterval(window.guruReminderInterval);
+    window.guruReminderInterval = null;
+  }
   currentUser = null;
   localStorage.removeItem('daarulilmi_user');
   localStorage.removeItem('daarulilmi_last_tab');
