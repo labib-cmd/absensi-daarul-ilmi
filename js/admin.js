@@ -144,79 +144,114 @@ function renderRealtimeMonitoringList() {
 
   filtered.forEach(function(g) {
     var card = document.createElement('div');
-    card.className = 'p-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs gap-2';
+    card.className = 'p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-2.5 text-xs';
     
     var hasMasuk = g.detail && g.detail.jam_masuk;
     var hasPulang = g.detail && g.detail.jam_pulang;
 
     var badgeClass = 'bg-rose-100 text-rose-800';
     var badgeText = 'Belum Absen';
-    var detailHtml = '<p class="text-[10px] text-slate-400">Belum melakukan presensi hari ini</p>';
 
+    if (hasPulang) {
+      badgeClass = 'bg-amber-100 text-amber-800';
+      badgeText = 'Sudah Absen Pulang';
+    } else if (hasMasuk) {
+      badgeClass = 'bg-blue-100 text-blue-800';
+      badgeText = 'Sudah Absen Datang';
+    }
+
+    // KOLOM KIRI (DATANG)
+    var boxDatangHtml = '';
     if (hasMasuk) {
       var statMasuk = g.detail.status_masuk || (g.detail.jam_masuk.slice(0, 5) > '07:00' ? 'Terlambat' : 'Tepat Waktu');
       var colorStatMasuk = statMasuk === 'Tepat Waktu' 
         ? 'text-emerald-700 bg-emerald-100/70 border-emerald-200' 
         : 'text-rose-700 bg-rose-100/70 border-rose-200';
-      
-      var masukBadge = '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold border ' + colorStatMasuk + '">' + statMasuk + '</span>';
-      var fotoMBtn = g.detail.foto_masuk ? '<button type="button" onclick="openFotoModal(\'' + g.detail.foto_masuk + '\', \'' + g.nama_guru + '\', \'Datang\')" class="px-1.5 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded text-[9px] font-bold flex items-center space-x-0.5 ml-1"><i data-lucide="image" class="w-2.5 h-2.5"></i><span>Foto</span></button>' : '';
-      var alasanMText = g.detail.alasan_masuk ? '<span class="text-[9px] text-amber-700 italic block mt-0.5">Alasan: ' + g.detail.alasan_masuk + '</span>' : '';
+      var fotoMBtn = g.detail.foto_masuk 
+        ? '<button type="button" onclick="openFotoModal(\'' + g.detail.foto_masuk + '\', \'' + g.nama_guru + '\', \'Datang\')" class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[9px] font-bold flex items-center justify-center space-x-1 mt-1.5 transition"><i data-lucide="image" class="w-3 h-3"></i><span>Lihat Foto</span></button>' 
+        : '';
+      var alasanMText = g.detail.alasan_masuk ? '<span class="text-[9px] text-amber-700 italic block mt-1 leading-tight">Ket: ' + g.detail.alasan_masuk + '</span>' : '';
 
-      if (hasPulang) {
-        badgeClass = 'bg-amber-100 text-amber-800';
-        badgeText = 'Sudah Absen Pulang';
-
-        var statPulang = g.detail.status_pulang || (g.detail.jam_pulang.slice(0, 5) < '16:00' ? 'Pulang Terlalu Cepat' : 'Tepat Waktu');
-        var colorStatPulang = statPulang === 'Tepat Waktu' 
-          ? 'text-emerald-700 bg-emerald-100/70 border-emerald-200' 
-          : 'text-amber-700 bg-amber-100/70 border-amber-200';
-        
-        var pulangBadge = '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold border ' + colorStatPulang + '">' + statPulang + '</span>';
-        var fotoPBtn = g.detail.foto_pulang ? '<button type="button" onclick="openFotoModal(\'' + g.detail.foto_pulang + '\', \'' + g.nama_guru + '\', \'Pulang\')" class="px-1.5 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded text-[9px] font-bold flex items-center space-x-0.5 ml-1"><i data-lucide="image" class="w-2.5 h-2.5"></i><span>Foto</span></button>' : '';
-        var alasanPText = g.detail.alasan_pulang ? '<span class="text-[9px] text-amber-700 italic block mt-0.5">Alasan: ' + g.detail.alasan_pulang + '</span>' : '';
-
-        detailHtml = '<div class="space-y-1 mt-0.5">' +
-          '<div>' +
-            '<p class="text-[10px] text-slate-600 flex items-center space-x-1 flex-wrap">' +
-              '<span>Datang: <strong>' + g.detail.jam_masuk + '</strong></span> ' + masukBadge + fotoMBtn +
-            '</p>' + alasanMText +
+      boxDatangHtml = '<div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between">' +
+        '<div>' +
+          '<div class="flex items-center justify-between flex-wrap gap-1">' +
+            '<span class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Datang</span>' +
+            '<span class="inline-flex items-center px-1.5 py-0.2 rounded text-[8px] font-bold border ' + colorStatMasuk + '">' + statMasuk + '</span>' +
           '</div>' +
-          '<div>' +
-            '<p class="text-[10px] text-slate-600 flex items-center space-x-1 flex-wrap">' +
-              '<span>Pulang: <strong>' + g.detail.jam_pulang + '</strong></span> ' + pulangBadge + fotoPBtn +
-            '</p>' + alasanPText +
+          '<p class="text-xs sm:text-sm font-extrabold text-slate-800 mt-1">' + g.detail.jam_masuk + '</p>' +
+          alasanMText +
+        '</div>' +
+        fotoMBtn +
+      '</div>';
+    } else {
+      boxDatangHtml = '<div class="p-2.5 rounded-xl bg-slate-50/60 border border-slate-100 flex flex-col justify-between">' +
+        '<div>' +
+          '<div class="flex items-center justify-between">' +
+            '<span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Datang</span>' +
+            '<span class="text-[8px] px-1.5 py-0.2 rounded font-bold bg-slate-200 text-slate-500">Belum</span>' +
           '</div>' +
-        '</div>';
-      } else {
-        badgeClass = 'bg-blue-100 text-blue-800';
-        badgeText = 'Sudah Absen Datang';
-
-        detailHtml = '<div class="space-y-1 mt-0.5">' +
-          '<div>' +
-            '<p class="text-[10px] text-slate-600 flex items-center space-x-1 flex-wrap">' +
-              '<span>Datang: <strong>' + g.detail.jam_masuk + '</strong></span> ' + masukBadge + fotoMBtn +
-            '</p>' + alasanMText +
-          '</div>' +
-          '<p class="text-[10px] text-slate-400 italic">Belum Absen Pulang</p>' +
-        '</div>';
-      }
+          '<p class="text-xs sm:text-sm font-extrabold text-slate-400 mt-1">--:--</p>' +
+        '</div>' +
+      '</div>';
     }
 
-    var left = '<div class="min-w-0 flex-1">' +
-      '<p class="font-bold text-slate-800 truncate text-xs">' + g.nama_guru + '</p>' +
-      detailHtml +
+    // KOLOM KANAN (PULANG)
+    var boxPulangHtml = '';
+    if (hasPulang) {
+      var statPulang = g.detail.status_pulang || (g.detail.jam_pulang.slice(0, 5) < '16:00' ? 'Pulang Terlalu Cepat' : 'Tepat Waktu');
+      var colorStatPulang = statPulang === 'Tepat Waktu' 
+        ? 'text-emerald-700 bg-emerald-100/70 border-emerald-200' 
+        : 'text-amber-700 bg-amber-100/70 border-amber-200';
+      var fotoPBtn = g.detail.foto_pulang 
+        ? '<button type="button" onclick="openFotoModal(\'' + g.detail.foto_pulang + '\', \'' + g.nama_guru + '\', \'Pulang\')" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-bold flex items-center justify-center space-x-1 mt-1.5 transition"><i data-lucide="image" class="w-3 h-3"></i><span>Lihat Foto</span></button>' 
+        : '';
+      var alasanPText = g.detail.alasan_pulang ? '<span class="text-[9px] text-amber-700 italic block mt-1 leading-tight">Ket: ' + g.detail.alasan_pulang + '</span>' : '';
+
+      boxPulangHtml = '<div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between">' +
+        '<div>' +
+          '<div class="flex items-center justify-between flex-wrap gap-1">' +
+            '<span class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Pulang</span>' +
+            '<span class="inline-flex items-center px-1.5 py-0.2 rounded text-[8px] font-bold border ' + colorStatPulang + '">' + statPulang + '</span>' +
+          '</div>' +
+          '<p class="text-xs sm:text-sm font-extrabold text-slate-800 mt-1">' + g.detail.jam_pulang + '</p>' +
+          alasanPText +
+        '</div>' +
+        fotoPBtn +
+      '</div>';
+    } else {
+      boxPulangHtml = '<div class="p-2.5 rounded-xl bg-slate-50/60 border border-slate-100 flex flex-col justify-between">' +
+        '<div>' +
+          '<div class="flex items-center justify-between">' +
+            '<span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Pulang</span>' +
+            '<span class="text-[8px] px-1.5 py-0.2 rounded font-bold bg-slate-200 text-slate-500">Belum</span>' +
+          '</div>' +
+          '<p class="text-xs sm:text-sm font-extrabold text-slate-400 mt-1">--:--</p>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var headerRow = '<div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">' +
+      '<div class="min-w-0 flex items-center space-x-2">' +
+        '<div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs flex-shrink-0">' +
+          (g.nama_guru ? g.nama_guru.charAt(0).toUpperCase() : 'G') +
+        '</div>' +
+        '<p class="font-bold text-slate-800 truncate text-xs sm:text-sm">' + g.nama_guru + '</p>' +
+      '</div>' +
+      '<div class="flex items-center space-x-1.5 flex-shrink-0">' +
+        '<span class="text-[9px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap ' + badgeClass + '">' + badgeText + '</span>' +
+        '<button type="button" onclick="openEditJamGuruModal(\'' + g.id_user + '\')" title="Edit Jam Guru" class="px-2 py-1 rounded-lg bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 transition flex items-center space-x-1 shadow-sm cursor-pointer active:scale-95">' +
+          '<i data-lucide="edit-3" class="w-3 h-3"></i>' +
+          '<span class="text-[9px] font-bold">Edit Jam</span>' +
+        '</button>' +
+      '</div>' +
     '</div>';
 
-    var right = '<div class="flex items-center space-x-1.5 flex-shrink-0 self-start mt-0.5">' +
-      '<span class="text-[9px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap ' + badgeClass + '">' + badgeText + '</span>' +
-      '<button type="button" onclick="openEditJamGuruModal(\'' + g.id_user + '\')" title="Edit Jam Guru" class="px-2 py-1 rounded-lg bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 transition flex items-center space-x-1 shadow-sm cursor-pointer active:scale-95">' +
-      '<i data-lucide="edit-3" class="w-3 h-3"></i>' +
-      '<span class="text-[9px] font-bold">Edit Jam</span>' +
-      '</button>' +
-      '</div>';
+    var gridColumns = '<div class="grid grid-cols-2 gap-2">' +
+      boxDatangHtml +
+      boxPulangHtml +
+    '</div>';
 
-    card.innerHTML = left + right;
+    card.innerHTML = headerRow + gridColumns;
     listM.appendChild(card);
   });
 
