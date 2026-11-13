@@ -331,25 +331,101 @@ function triggerNativeCamera() {
   if (inp) inp.click();
 }
 
+// BUBURKAN CAP WAKTU REAL-TIME PADA FOTO
+function drawRealtimeTimestampOnCanvas(canvas, ctx) {
+  var w = canvas.width;
+  var h = canvas.height;
+  
+  var now = new Date();
+  var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  
+  var dayName = days[now.getDay()];
+  var dateStr = String(now.getDate()).padStart(2, '0') + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+  var timeStr = String(now.getHours()).padStart(2, '0') + ':' + 
+                String(now.getMinutes()).padStart(2, '0') + ':' + 
+                String(now.getSeconds()).padStart(2, '0') + ' WIB';
+  
+  var textTimestamp = dayName + ', ' + dateStr + ' • ' + timeStr;
+
+  // Ukuran font adaptif sesuai resolusi kamera
+  var fontSize = Math.max(11, Math.round(w * 0.035));
+  ctx.font = 'bold ' + fontSize + 'px sans-serif';
+  
+  var textMetrics = ctx.measureText(textTimestamp);
+  var paddingX = 12;
+  var paddingY = 6;
+  var boxW = textMetrics.width + (paddingX * 2) + 16;
+  var boxH = fontSize + (paddingY * 2) + 4;
+  var posX = 10;
+  var posY = h - boxH - 12;
+
+  // Latar belakang badge rounded hitam semi-transparan
+  ctx.save();
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.75)'; // slate-900 / 75%
+  
+  var radius = 8;
+  ctx.beginPath();
+  ctx.moveTo(posX + radius, posY);
+  ctx.lineTo(posX + boxW - radius, posY);
+  ctx.quadraticCurveTo(posX + boxW, posY, posX + boxW, posY + radius);
+  ctx.lineTo(posX + boxW, posY + boxH - radius);
+  ctx.quadraticCurveTo(posX + boxW, posY + boxH, posX + boxW - radius, posY + boxH);
+  ctx.lineTo(posX + radius, posY + boxH);
+  ctx.quadraticCurveTo(posX, posY + boxH, posX, posY + boxH - radius);
+  ctx.lineTo(posX, posY + radius);
+  ctx.quadraticCurveTo(posX, posY, posX + radius, posY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Titik indikator waktu hijau hidup
+  ctx.fillStyle = '#22c55e'; // green-500
+  ctx.beginPath();
+  var dotRadius = Math.max(3, Math.round(fontSize * 0.22));
+  var dotX = posX + paddingX;
+  var dotY = posY + (boxH / 2);
+  ctx.arc(dotX, dotY, dotRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Teks Tanggal & Jam Realtime
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(textTimestamp, dotX + dotRadius + 7, dotY);
+  ctx.restore();
+}
+
 function handleNativeCameraFile(e) {
   var file = e.target.files && e.target.files[0];
   if (!file) return;
 
   var reader = new FileReader();
   reader.onload = function(evt) {
-    capturedPhotoBase64 = evt.target.result;
-    var img = document.getElementById('imgCaptured');
-    var video = document.getElementById('videoPreview');
-    var fallbackBox = document.getElementById('fallbackCamBox');
+    var rawSrc = evt.target.result;
+    var tempImg = new Image();
+    tempImg.onload = function() {
+      var canvas = document.getElementById('canvasSnap');
+      canvas.width = tempImg.width || 400;
+      canvas.height = tempImg.height || 400;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
+      
+      drawRealtimeTimestampOnCanvas(canvas, ctx);
 
-    img.src = capturedPhotoBase64;
-    if (fallbackBox) fallbackBox.classList.add('hidden');
-    if (video) video.classList.add('hidden');
-    img.classList.remove('hidden');
+      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.75);
+      var img = document.getElementById('imgCaptured');
+      var video = document.getElementById('videoPreview');
+      var fallbackBox = document.getElementById('fallbackCamBox');
 
-    document.getElementById('btnSnap').innerHTML = '<i data-lucide="rotate-ccw" class="w-4 h-4 mr-1"></i><span>Foto Ulang</span>';
-    updateSubmitButtonState();
-    lucide.createIcons();
+      img.src = capturedPhotoBase64;
+      if (fallbackBox) fallbackBox.classList.add('hidden');
+      if (video) video.classList.add('hidden');
+      img.classList.remove('hidden');
+
+      document.getElementById('btnSnap').innerHTML = '<i data-lucide="rotate-ccw" class="w-4 h-4 mr-1"></i><span>Foto Ulang</span>';
+      updateSubmitButtonState();
+      lucide.createIcons();
+    };
+    tempImg.src = rawSrc;
   };
   reader.readAsDataURL(file);
 }
@@ -383,7 +459,10 @@ function takeSnapshot() {
   var ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   
-  capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+  // Cap waktu realtime langsung di atas foto
+  drawRealtimeTimestampOnCanvas(canvas, ctx);
+
+  capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.75);
   img.src = capturedPhotoBase64;
   
   video.classList.add('hidden');
