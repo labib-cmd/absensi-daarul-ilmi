@@ -307,15 +307,17 @@ function renderRealtimeMonitoringList() {
       '</div>';
     }
 
-    var headerRow = '<div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">' +
-      '<div class="min-w-0 flex items-center space-x-2">' +
-        '<div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs flex-shrink-0">' +
+    var headerRow = '<div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">' +
+      '<div class="flex items-start space-x-2.5 min-w-0 flex-1">' +
+        '<div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow-sm">' +
           (g.nama_guru ? g.nama_guru.charAt(0).toUpperCase() : 'G') +
         '</div>' +
-        '<p class="font-bold text-slate-800 truncate text-xs sm:text-sm">' + g.nama_guru + '</p>' +
+        '<div class="min-w-0 flex-1">' +
+          '<p class="font-bold text-slate-800 text-xs sm:text-sm leading-snug break-words">' + g.nama_guru + '</p>' +
+          '<span class="inline-block mt-1 text-[9px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap ' + badgeClass + '">' + badgeText + '</span>' +
+        '</div>' +
       '</div>' +
-      '<div class="flex items-center space-x-1.5 flex-shrink-0">' +
-        '<span class="text-[9px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap ' + badgeClass + '">' + badgeText + '</span>' +
+      '<div class="flex-shrink-0 pt-0.5">' +
         '<button type="button" onclick="openEditJamGuruModal(\'' + g.id_user + '\')" title="Edit Jam Guru" class="px-2 py-1 rounded-lg bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 transition flex items-center space-x-1 shadow-sm cursor-pointer active:scale-95">' +
           '<i data-lucide="edit-3" class="w-3 h-3"></i>' +
           '<span class="text-[9px] font-bold">Edit Jam</span>' +
@@ -550,14 +552,16 @@ function renderApprovalIzinAdmin(list) {
     var card = document.createElement('div');
     card.className = 'p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-2 text-xs';
     
-    var header = '<div class="flex items-center justify-between border-b border-slate-100 pb-2">' +
-      '<div class="flex items-center space-x-2 min-w-0">' +
-        '<div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs flex-shrink-0">' +
+    var header = '<div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">' +
+      '<div class="flex items-start space-x-2 min-w-0 flex-1">' +
+        '<div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">' +
           (item.nama_guru ? item.nama_guru.charAt(0).toUpperCase() : 'G') +
         '</div>' +
-        '<span class="font-bold text-slate-800 truncate text-xs sm:text-sm">' + (item.nama_guru || 'Guru') + '</span>' +
+        '<div class="min-w-0 flex-1">' +
+          '<span class="font-bold text-slate-800 text-xs sm:text-sm leading-snug break-words block">' + (item.nama_guru || 'Guru') + '</span>' +
+        '</div>' +
       '</div>' +
-      '<span class="text-[9px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap ' + badgeClass + '">' + statusLabel + '</span>' +
+      '<span class="text-[9px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap flex-shrink-0 ' + badgeClass + '">' + statusLabel + '</span>' +
     '</div>';
 
     var sub = '<div class="flex items-center justify-between text-[11px] text-slate-600 font-semibold">' +
