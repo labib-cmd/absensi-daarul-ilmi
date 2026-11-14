@@ -49,11 +49,18 @@ function loadTodayStatusGuru() {
 
 function checkGuruAttendanceReminder(todayAbsen) {
   if (!currentUser || currentUser.role !== 'Guru') return;
+
+  var now = new Date();
+  var dayOfWeek = now.getDay(); // 0 = Ahad/Minggu, 6 = Sabtu
+  // Nonaktifkan notifikasi pengingat pada hari Sabtu & Ahad (hanya aktif Senin s/d Jumat)
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    return;
+  }
+
   if (typeof requestNotificationPermission === 'function') {
     requestNotificationPermission();
   }
 
-  var now = new Date();
   var hours = now.getHours();
   var minutes = now.getMinutes();
   var totalMins = hours * 60 + minutes;
@@ -100,6 +107,10 @@ function renderTodayCardGuru(data) {
   var btnM = document.getElementById('btnAbsenMasuk');
   var btnP = document.getElementById('btnAbsenPulang');
 
+  var now = new Date();
+  var dayOfWeek = now.getDay(); // 0 = Ahad, 6 = Sabtu
+  var isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
   if (data && data.jam_masuk) {
     elJamM.innerText = data.jam_masuk;
     elStatM.innerText = data.status_masuk;
@@ -109,9 +120,18 @@ function renderTodayCardGuru(data) {
     btnM.disabled = true;
   } else {
     elJamM.innerText = '--:--';
-    elStatM.innerText = 'Belum';
-    elStatM.className = 'inline-block text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-200 text-slate-600';
-    btnM.disabled = false;
+    elStatM.innerText = isWeekend ? 'Libur' : 'Belum';
+    elStatM.className = isWeekend ? 
+      'inline-block text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500 border border-slate-200' :
+      'inline-block text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-200 text-slate-600';
+    btnM.disabled = isWeekend ? true : false;
+    if (isWeekend) {
+      btnM.classList.add('opacity-40', 'cursor-not-allowed');
+      btnM.title = 'Libur Sekolah (Presensi hanya Senin - Jumat)';
+    } else {
+      btnM.classList.remove('opacity-40', 'cursor-not-allowed');
+      btnM.title = '';
+    }
   }
 
   if (data && data.jam_pulang) {
@@ -123,9 +143,18 @@ function renderTodayCardGuru(data) {
     btnP.disabled = true;
   } else {
     elJamP.innerText = '--:--';
-    elStatP.innerText = 'Belum';
-    elStatP.className = 'inline-block text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-200 text-slate-600';
-    btnP.disabled = !(data && data.jam_masuk);
+    elStatP.innerText = isWeekend ? 'Libur' : 'Belum';
+    elStatP.className = isWeekend ? 
+      'inline-block text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500 border border-slate-200' :
+      'inline-block text-[9px] px-2 py-0.5 rounded-full font-bold bg-slate-200 text-slate-600';
+    btnP.disabled = isWeekend ? true : !(data && data.jam_masuk);
+    if (isWeekend) {
+      btnP.classList.add('opacity-40', 'cursor-not-allowed');
+      btnP.title = 'Libur Sekolah (Presensi hanya Senin - Jumat)';
+    } else {
+      btnP.classList.remove('opacity-40', 'cursor-not-allowed');
+      btnP.title = '';
+    }
   }
 }
 
@@ -196,6 +225,13 @@ function renderTableGuru(items, pag) {
 
 // Modal Presensi Kamera & Geofencing
 function openAbsenModal(type) {
+  var now = new Date();
+  var dayOfWeek = now.getDay(); // 0 = Ahad/Minggu, 6 = Sabtu
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    showNotif('Hari Libur Sekolah', 'Presensi guru hanya aktif pada hari kerja (Senin s/d Jumat). Hari Sabtu dan Ahad adalah hari libur sekolah. Selamat berlibur!', false);
+    return;
+  }
+
   currentAbsenType = type;
   document.getElementById('modalTitle').innerText = 'Presensi ' + (type === 'MASUK' ? 'Masuk' : 'Pulang');
   

@@ -293,6 +293,12 @@ var API = {
   // 4. Simpan Absen Masuk & Pulang (Dengan Validasi Ketat Geofencing GPS & Jam Kerja)
   simpanAbsen: function(type, payload) {
     return new Promise(function(resolve) {
+      var dayOfWeek = new Date().getDay(); // 0 = Ahad/Minggu, 6 = Sabtu
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        resolve({ success: false, message: 'Presensi hanya berlaku pada hari kerja (Senin s/d Jumat). Hari Sabtu dan Ahad adalah libur sekolah.' });
+        return;
+      }
+
       var sb = getSupabase();
       if (sb) {
         API.getSettings().then(function(settings) {
@@ -345,11 +351,14 @@ var API = {
             }
 
             uploadSelfieToSupabase(payload.foto, payload.userId + '_' + type.toLowerCase() + '.jpg').then(function(photoUrl) {
+              var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+              var dayName = days[new Date().getDay()];
               if (type === 'MASUK') {
                 var newRecord = {
                   id_absen: 'ABS-' + Date.now(),
                   id_user: payload.userId,
                   nama_guru: payload.userNama,
+                  hari: dayName,
                   tanggal: today,
                   jam_masuk: nowTime,
                   status_masuk: computedStatus,
