@@ -620,22 +620,41 @@ function submitApprovalAdmin(status) {
 
 function downloadRekapPdf() {
   var sb = typeof getSupabase === 'function' ? getSupabase() : null;
+  var selGuru = document.getElementById('filterGuru');
+  var selectedGuruId = (selGuru && selGuru.value) ? selGuru.value : 'ALL';
+  var selectedGuruName = (selGuru && selGuru.selectedIndex >= 0 && selectedGuruId !== 'ALL') ? selGuru.options[selGuru.selectedIndex].text : '';
+  var searchVal = document.getElementById('searchAdminRekap') ? document.getElementById('searchAdminRekap').value.trim() : '';
+
   var fetchPromise;
-  
   if (sb) {
-    fetchPromise = sb.from('absensi').select('*').order('created_at', { ascending: false });
+    var query = sb.from('absensi').select('*').order('created_at', { ascending: false });
+    if (selectedGuruId !== 'ALL') {
+      query = query.eq('id_user', selectedGuruId);
+    }
+    if (searchVal) {
+      query = query.ilike('nama_guru', '%' + searchVal + '%');
+    }
+    fetchPromise = query;
   } else {
-    fetchPromise = Promise.resolve({ data: cachedRekapData });
+    var filtered = cachedRekapData || [];
+    if (selectedGuruId !== 'ALL') {
+      filtered = filtered.filter(function(r) { return r.id_user === selectedGuruId || r.nama_guru === selectedGuruName; });
+    }
+    if (searchVal) {
+      filtered = filtered.filter(function(r) { return (r.nama_guru || '').toLowerCase().indexOf(searchVal.toLowerCase()) !== -1; });
+    }
+    fetchPromise = Promise.resolve({ data: filtered });
   }
 
   fetchPromise.then(function(res) {
-    var data = (res && res.data && res.data.length > 0) ? res.data : cachedRekapData;
+    var data = (res && res.data && res.data.length > 0) ? res.data : (res && Array.isArray(res)) ? res : [];
     if (!data || data.length === 0) {
-      showNotif('Data Kosong', 'Belum ada data presensi yang tercatat untuk dicetak.', false);
+      showNotif('Data Kosong', 'Tidak ada data presensi yang sesuai dengan filter guru yang dipilih.', false);
       return;
     }
 
     var tglCetak = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    var subJudul = selectedGuruName ? 'Nama Guru: ' + selectedGuruName : 'Seluruh Guru & Karyawan';
     
     var rowsHtml = '';
     data.forEach(function(r, idx) {
@@ -660,14 +679,15 @@ function downloadRekapPdf() {
     }
 
     var htmlDoc = '<!DOCTYPE html>' +
-      '<html lang="id"><head><meta charset="UTF-8"><title>Rekap Presensi - SMA Islam Daarul Ilmi Depok</title>' +
+      '<html lang="id"><head><meta charset="UTF-8"><title>Rekap Presensi - ' + (selectedGuruName || 'SMA Islam Daarul Ilmi Depok') + '</title>' +
       '<style>' +
       'body { font-family: "Segoe UI", Arial, sans-serif; padding: 25px; color: #1e293b; line-height: 1.4; }' +
       '.kop { border-bottom: 3px double #065f46; padding-bottom: 12px; margin-bottom: 18px; text-align: center; }' +
       '.kop h2 { margin: 0; font-size: 20px; color: #065f46; letter-spacing: 0.5px; }' +
       '.kop h3 { margin: 4px 0 0 0; font-size: 13px; font-weight: 600; color: #334155; }' +
       '.kop p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; }' +
-      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px 0 4px 0; letter-spacing: 0.8px; color: #0f172a; }' +
+      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px 0 2px 0; letter-spacing: 0.8px; color: #0f172a; }' +
+      '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 4px; }' +
       '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 16px; }' +
       'table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }' +
       'th, td { border: 1px solid #cbd5e1; padding: 7px 9px; }' +
@@ -684,6 +704,7 @@ function downloadRekapPdf() {
         '<p>Kota Depok, Jawa Barat | Email: info@daarulilmi.sch.id</p>' +
       '</div>' +
       '<div class="judul-laporan">Laporan Rekapitulasi Presensi Kehadiran</div>' +
+      '<div class="sub-judul">' + subJudul + '</div>' +
       '<div class="tgl-cetak">Waktu Cetak: ' + tglCetak + '</div>' +
       '<table>' +
         '<thead>' +
@@ -727,22 +748,42 @@ function downloadRekapPdf() {
 
 function downloadRekapCsv() {
   var sb = typeof getSupabase === 'function' ? getSupabase() : null;
+  var selGuru = document.getElementById('filterGuru');
+  var selectedGuruId = (selGuru && selGuru.value) ? selGuru.value : 'ALL';
+  var selectedGuruName = (selGuru && selGuru.selectedIndex >= 0 && selectedGuruId !== 'ALL') ? selGuru.options[selGuru.selectedIndex].text : '';
+  var searchVal = document.getElementById('searchAdminRekap') ? document.getElementById('searchAdminRekap').value.trim() : '';
+
   var fetchPromise;
-  
   if (sb) {
-    fetchPromise = sb.from('absensi').select('*').order('created_at', { ascending: false });
+    var query = sb.from('absensi').select('*').order('created_at', { ascending: false });
+    if (selectedGuruId !== 'ALL') {
+      query = query.eq('id_user', selectedGuruId);
+    }
+    if (searchVal) {
+      query = query.ilike('nama_guru', '%' + searchVal + '%');
+    }
+    fetchPromise = query;
   } else {
-    fetchPromise = Promise.resolve({ data: cachedRekapData });
+    var filtered = cachedRekapData || [];
+    if (selectedGuruId !== 'ALL') {
+      filtered = filtered.filter(function(r) { return r.id_user === selectedGuruId || r.nama_guru === selectedGuruName; });
+    }
+    if (searchVal) {
+      filtered = filtered.filter(function(r) { return (r.nama_guru || '').toLowerCase().indexOf(searchVal.toLowerCase()) !== -1; });
+    }
+    fetchPromise = Promise.resolve({ data: filtered });
   }
 
   fetchPromise.then(function(res) {
-    var data = (res && res.data && res.data.length > 0) ? res.data : cachedRekapData;
+    var data = (res && res.data && res.data.length > 0) ? res.data : (res && Array.isArray(res)) ? res : [];
     if (!data || data.length === 0) {
-      showNotif('Data Kosong', 'Belum ada data presensi yang tercatat untuk diunduh.', false);
+      showNotif('Data Kosong', 'Tidak ada data presensi yang sesuai dengan filter guru yang dipilih.', false);
       return;
     }
 
+    var namaGuruClean = selectedGuruName ? selectedGuruName.replace(/[^a-zA-Z0-9]/g, '_') : 'Semua_Guru';
     var tglFile = new Date().toISOString().slice(0, 10);
+    var namaFileDownload = 'Rekap_Presensi_' + namaGuruClean + '_' + tglFile;
 
     // OPSI 1: Format Asli Microsoft Excel (.xlsx) dengan SheetJS (Rapi per kolom)
     if (window.XLSX && XLSX.utils) {
@@ -781,10 +822,11 @@ function downloadRekapCsv() {
       ws['!cols'] = colWidths;
 
       var wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Rekap Kehadiran');
-      XLSX.writeFile(wb, 'Rekap_Presensi_SMA_Islam_Daarul_Ilmi_' + tglFile + '.xlsx');
+      var sheetName = selectedGuruName ? selectedGuruName.slice(0, 30) : 'Rekap Kehadiran';
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, namaFileDownload + '.xlsx');
 
-      showNotif('Unduh Berhasil', 'Berkas Excel (.xlsx) rapi per-kolom berhasil diunduh ke komputer Anda.', true);
+      showNotif('Unduh Berhasil', 'Berkas Excel (.xlsx) ' + (selectedGuruName ? 'untuk ' + selectedGuruName : 'semua guru') + ' berhasil diunduh.', true);
       return;
     }
 
@@ -814,7 +856,7 @@ function downloadRekapCsv() {
     var url = URL.createObjectURL(blob);
     var link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'Rekap_Presensi_SMA_Islam_Daarul_Ilmi_' + tglFile + '.csv');
+    link.setAttribute('download', namaFileDownload + '.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

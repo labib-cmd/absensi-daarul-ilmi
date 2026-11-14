@@ -525,11 +525,19 @@ var API = {
       var sb = getSupabase();
       if (sb) {
         var today = getTodayFormatted();
+        var rekapQuery = sb.from('absensi').select('*').order('created_at', { ascending: false }).limit(100);
+        if (filterGuru && filterGuru !== 'ALL') {
+          rekapQuery = rekapQuery.eq('id_user', filterGuru);
+        }
+        if (search && search.trim() !== '') {
+          rekapQuery = rekapQuery.ilike('nama_guru', '%' + search.trim() + '%');
+        }
+
         Promise.all([
           sb.from('users').select('*').eq('role', 'Guru'),
           sb.from('absensi').select('*').eq('tanggal', today),
           sb.from('settings').select('*'),
-          sb.from('absensi').select('*').order('created_at', { ascending: false }).limit(50)
+          rekapQuery
         ]).then(function(results) {
           var guruUsers = results[0].data || [];
           var todayAbsensi = results[1].data || [];
