@@ -562,8 +562,9 @@ function getGPSLocation() {
         if (txt) txt.innerText = 'GPS Tidak Aktif / Ditolak';
         if (badge) badge.className = 'absolute bottom-2 left-2 bg-rose-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-rose-400/50 z-20';
         if (alertBox) {
-          alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center space-x-2 text-left border bg-rose-50 border-rose-200 text-rose-800';
-          alertBox.innerHTML = '<i data-lucide="map-pin-off" class="w-4 h-4 text-rose-600 flex-shrink-0"></i><span><b>GPS Wajib Aktif!</b> Izinkan akses lokasi pada browser/HP Anda untuk bisa melakukan presensi.</span>';
+          alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between text-left border bg-rose-50 border-rose-200 text-rose-800';
+          alertBox.innerHTML = '<div class="flex items-center space-x-2"><i data-lucide="map-pin-off" class="w-4 h-4 text-rose-600 flex-shrink-0"></i><span><b>GPS Wajib Aktif!</b> Aktifkan GPS di HP & izinkan lokasi.</span></div>' +
+            '<button type="button" onclick="getGPSLocation()" class="ml-2 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] flex-shrink-0 shadow-sm transition active:scale-95">Ulangi GPS</button>';
         }
         if (window.lucide) lucide.createIcons();
         updateSubmitButtonState();
