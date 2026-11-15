@@ -258,9 +258,20 @@ var API = {
           if (res.error) {
             resolve({ success: false, data: [], pagination: { currentPage: p, totalPages: 1, totalItems: 0 } });
           } else {
+            var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            var items = (res.data || []).map(function(row) {
+              if (!row.hari && row.tanggal) {
+                var p = row.tanggal.split('/');
+                if (p.length === 3) {
+                  var d = new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+                  row.hari = days[d.getDay()] || '';
+                }
+              }
+              return row;
+            });
             resolve({
               success: true,
-              data: res.data || [],
+              data: items,
               pagination: {
                 currentPage: p,
                 totalPages: Math.ceil((res.count || 0) / l) || 1,
@@ -351,14 +362,11 @@ var API = {
             }
 
             uploadSelfieToSupabase(payload.foto, payload.userId + '_' + type.toLowerCase() + '.jpg').then(function(photoUrl) {
-              var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-              var dayName = days[new Date().getDay()];
               if (type === 'MASUK') {
                 var newRecord = {
                   id_absen: 'ABS-' + Date.now(),
                   id_user: payload.userId,
                   nama_guru: payload.userNama,
-                  hari: dayName,
                   tanggal: today,
                   jam_masuk: nowTime,
                   status_masuk: computedStatus,
@@ -570,6 +578,18 @@ var API = {
             };
           });
 
+          var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+          var rekapWithHari = rekapData.map(function(row) {
+            if (!row.hari && row.tanggal) {
+              var p = row.tanggal.split('/');
+              if (p.length === 3) {
+                var d = new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+                row.hari = days[d.getDay()] || '';
+              }
+            }
+            return row;
+          });
+
           resolve({
             success: true,
             stats: {
@@ -581,7 +601,7 @@ var API = {
             guruList: guruUsers,
             settings: settingsObj,
             realtimeMonitoring: realtime,
-            rekapitulasi: rekapData,
+            rekapitulasi: rekapWithHari,
             pagination: { currentPage: page || 1, totalPages: 1 }
           });
         }).catch(function(err) {
