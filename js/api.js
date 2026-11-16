@@ -564,19 +564,22 @@ var API = {
           var settingsObj = {};
           settingsData.forEach(function(s) { settingsObj[s.key] = s.value; });
 
-          var sudahMasuk = todayAbsensi.filter(function(a) { return !!a.jam_masuk; }).length;
-          var sudahPulang = todayAbsensi.filter(function(a) { return !!a.jam_pulang; }).length;
-          var belumAbsen = Math.max(0, guruUsers.length - sudahMasuk);
-
+          // Petakan absensi ke setiap guru secara unik (cegah duplikasi data menghitung ganda)
           var realtime = guruUsers.map(function(g) {
-            var ab = todayAbsensi.find(function(a) { return a.id_user === g.id_user; });
+            var abList = todayAbsensi.filter(function(a) { return a.id_user === g.id_user; });
+            var ab = abList.length > 0 ? abList[abList.length - 1] : null;
             return {
               id_user: g.id_user,
               nama_guru: g.nama_guru,
-              status_presensi: ab ? 'Sudah Absen' : 'Belum Absen',
+              status_presensi: (ab && ab.jam_masuk) ? 'Sudah Absen' : 'Belum Absen',
               detail: ab || null
             };
           });
+
+          // Hitung murni dari daftar guru terdaftar agar angka badge dan daftar kartu selalu 100% konsisten
+          var sudahMasuk = realtime.filter(function(r) { return r.detail && r.detail.jam_masuk; }).length;
+          var sudahPulang = realtime.filter(function(r) { return r.detail && r.detail.jam_pulang; }).length;
+          var belumAbsen = Math.max(0, guruUsers.length - sudahMasuk);
 
           var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
           var rekapWithHari = rekapData.map(function(row) {

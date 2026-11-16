@@ -45,13 +45,27 @@ function initAdminIzinWatcher() {
     window.adminIzinPollInterval = setInterval(checkIncomingIzinAdmin, 10000);
   }
 
+  // Polling pembaruan data monitoring presensi tiap 20 detik
+  if (!window.adminMonitoringInterval) {
+    window.adminMonitoringInterval = setInterval(function() {
+      if (currentUser && currentUser.role !== 'Guru' && stateAdmin.tab === 'monitoring') {
+        loadAdminData();
+      }
+    }, 20000);
+  }
+
   // Supabase Realtime Listener (aktif instan jika Supabase Realtime replication ON)
   var sb = typeof getSupabase === 'function' ? getSupabase() : null;
   if (sb && !window.adminSupabaseChannel) {
     try {
-      window.adminSupabaseChannel = sb.channel('admin-perizinan-realtime')
+      window.adminSupabaseChannel = sb.channel('admin-dashboard-realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'perizinan' }, function() {
           checkIncomingIzinAdmin();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'absensi' }, function() {
+          if (currentUser && currentUser.role !== 'Guru' && stateAdmin.tab === 'monitoring') {
+            loadAdminData();
+          }
         })
         .subscribe();
     } catch (e) {}

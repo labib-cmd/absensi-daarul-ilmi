@@ -87,6 +87,10 @@ function handleLogout() {
     clearInterval(window.adminIzinPollInterval);
     window.adminIzinPollInterval = null;
   }
+  if (window.adminMonitoringInterval) {
+    clearInterval(window.adminMonitoringInterval);
+    window.adminMonitoringInterval = null;
+  }
   if (window.guruReminderInterval) {
     clearInterval(window.guruReminderInterval);
     window.guruReminderInterval = null;
