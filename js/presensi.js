@@ -66,15 +66,15 @@ function checkGuruAttendanceReminder(todayAbsen) {
   var totalMins = hours * 60 + minutes;
   var todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
-  // 1. Pengingat Datang Pagi (06:00 - 07:15) -> 360 s/d 435 menit
+  // 1. Pengingat Datang Pagi (06:00 - 09:30) -> 360 s/d 570 menit
   var sudahMasuk = todayAbsen && todayAbsen.jam_masuk;
   if (!sudahMasuk) {
     var keyDatang = 'notif_remind_datang_' + currentUser.id_user + '_' + todayKey;
-    if (totalMins >= 360 && totalMins <= 435 && !sessionStorage.getItem(keyDatang)) {
+    if (totalMins >= 360 && totalMins <= 570 && !sessionStorage.getItem(keyDatang)) {
       sessionStorage.setItem(keyDatang, '1');
       if (typeof triggerSystemNotification === 'function') {
         triggerSystemNotification('⏰ Pengingat Presensi Datang', {
-          body: 'Assalamu\'alaikum ' + currentUser.nama_guru + ', jangan lupa presensi datang sebelum pukul 07.00 WIB ya!',
+          body: 'Assalamu\'alaikum ' + currentUser.nama_guru + ', jangan lupa presensi datang hari ini ya!',
           icon: 'img/logo.jpg',
           tag: 'reminder-datang-' + todayKey
         });
@@ -82,11 +82,11 @@ function checkGuruAttendanceReminder(todayAbsen) {
     }
   }
 
-  // 2. Pengingat Pulang Sore (15:30 - 17:30) -> 930 s/d 1050 menit
+  // 2. Pengingat Pulang Sore (15:00 - 18:30) -> 900 s/d 1110 menit
   var sudahPulang = todayAbsen && todayAbsen.jam_pulang;
   if (sudahMasuk && !sudahPulang) {
     var keyPulang = 'notif_remind_pulang_' + currentUser.id_user + '_' + todayKey;
-    if (totalMins >= 930 && totalMins <= 1050 && !sessionStorage.getItem(keyPulang)) {
+    if (totalMins >= 900 && totalMins <= 1110 && !sessionStorage.getItem(keyPulang)) {
       sessionStorage.setItem(keyPulang, '1');
       if (typeof triggerSystemNotification === 'function') {
         triggerSystemNotification('🏠 Pengingat Presensi Pulang', {
