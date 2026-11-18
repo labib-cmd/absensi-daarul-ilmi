@@ -85,6 +85,9 @@ function playNotificationChime() {
     var AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     var ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(function() {});
+    }
     var now = ctx.currentTime;
     
     var osc1 = ctx.createOscillator();

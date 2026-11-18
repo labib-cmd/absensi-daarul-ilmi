@@ -221,6 +221,17 @@
 
       <!-- VIEW 3: DASHBOARD ADMIN -->
       <div id="viewAdmin" class="hidden space-y-5">
+        <!-- BANNER NOTIFIKASI IZIN BARU ADMIN -->
+        <div id="bannerPendingIzin" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between text-xs text-amber-900 shadow-sm animate-fade-in">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping flex-shrink-0"></span>
+            <span id="txtBannerPendingIzin" class="font-bold text-[11px] leading-tight">Ada pengajuan izin baru menunggu persetujuan Anda!</span>
+          </div>
+          <button type="button" onclick="switchAdminTab('izin')" class="ml-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-[10px] shadow flex-shrink-0 active:scale-95 transition">
+            Tinjau Izin
+          </button>
+        </div>
+
         <div class="card-float p-5 space-y-3">
           <h3 class="text-xs font-bold text-slate-800 flex items-center justify-between">
             <span>Monitoring Realtime Hari Ini</span>
@@ -709,11 +720,11 @@
   </div>
 
   <!-- SCRIPTS STANDAR TERPISAH (CLEAN & MODULAR) -->
-  <script src="js/api.js?v=3.7"></script>
-  <script src="js/auth.js?v=3.7"></script>
-  <script src="js/presensi.js?v=3.7"></script>
-  <script src="js/admin.js?v=3.7"></script>
-  <script src="js/app.js?v=3.7"></script>
+  <script src="js/api.js?v=3.8"></script>
+  <script src="js/auth.js?v=3.8"></script>
+  <script src="js/presensi.js?v=3.8"></script>
+  <script src="js/admin.js?v=3.8"></script>
+  <script src="js/app.js?v=3.8"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {

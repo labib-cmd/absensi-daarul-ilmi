@@ -20,29 +20,19 @@ var cachedRekapData = [];
 var activeApprovalId = null;
 var activeEditGuru = null;
 
-var adminNotifiedIzinIds = JSON.parse(localStorage.getItem('daarulilmi_notified_izin') || '[]');
+var adminNotifiedIzinIds = JSON.parse(sessionStorage.getItem('daarulilmi_session_notified_izin') || '[]');
 var isAdminWatcherInitialized = false;
 
 function initAdminIzinWatcher() {
   if (isAdminWatcherInitialized) return;
   isAdminWatcherInitialized = true;
 
-  // Catat ID lama jika pertama kali aplikasi dibuka agar tidak spam notif data kemarin
-  API.getDaftarIzinAdmin().then(function(res) {
-    var items = (res && res.data) ? res.data : [];
-    if (adminNotifiedIzinIds.length === 0 && items.length > 0) {
-      items.forEach(function(it) {
-        if (adminNotifiedIzinIds.indexOf(it.id_izin) === -1) {
-          adminNotifiedIzinIds.push(it.id_izin);
-        }
-      });
-      localStorage.setItem('daarulilmi_notified_izin', JSON.stringify(adminNotifiedIzinIds.slice(-100)));
-    }
-  });
+  // Segera periksa izin pending saat admin pertama kali membuka halaman
+  checkIncomingIzinAdmin();
 
-  // Polling rutin pemantau izin masuk tiap 10 detik
+  // Polling rutin pemantau izin masuk tiap 8 detik
   if (!window.adminIzinPollInterval) {
-    window.adminIzinPollInterval = setInterval(checkIncomingIzinAdmin, 10000);
+    window.adminIzinPollInterval = setInterval(checkIncomingIzinAdmin, 8000);
   }
 
   // Polling pembaruan data monitoring presensi tiap 20 detik
@@ -77,10 +67,10 @@ function checkIncomingIzinAdmin() {
     var items = (res && res.data) ? res.data : [];
     var pendingItems = items.filter(function(it) { return it && it.status === 'PENDING'; });
     
-    // Perbarui badge merah
+    // Perbarui badge merah & banner atas
     updateBadgePendingIzin(items);
 
-    // Filter izin pending baru yang belum pernah diberitahukan
+    // Filter izin pending yang belum pernah diberitahukan di sesi browser ini
     var newPending = pendingItems.filter(function(it) {
       return adminNotifiedIzinIds.indexOf(it.id_izin) === -1;
     });
@@ -98,10 +88,10 @@ function checkIncomingIzinAdmin() {
             data: { action: 'open_izin', url: './index.html' }
           });
         }
-        showNotif('Izin Baru Masuk', item.nama_guru + ' mengajukan ' + item.jenis_izin + ' (' + (item.alasan || '-') + ').', true);
+        showNotif('Pengajuan Izin Masuk', item.nama_guru + ' mengajukan ' + item.jenis_izin + ' (' + (item.alasan || '-') + '). Silakan tinjau di tab Approval Izin.', true);
       });
 
-      localStorage.setItem('daarulilmi_notified_izin', JSON.stringify(adminNotifiedIzinIds.slice(-100)));
+      sessionStorage.setItem('daarulilmi_session_notified_izin', JSON.stringify(adminNotifiedIzinIds.slice(-50)));
 
       // Jika admin sedang di tab izin, perbarui daftar tampilan seketika
       if (stateAdmin.tab === 'izin') {
@@ -510,15 +500,31 @@ function saveAdminSettings() {
 
 function updateBadgePendingIzin(list) {
   var badge = document.getElementById('badgePendingIzin');
-  if (!badge) return;
+  var banner = document.getElementById('bannerPendingIzin');
+  var txtBanner = document.getElementById('txtBannerPendingIzin');
 
   if (list && Array.isArray(list)) {
-    var pendingCount = list.filter(function(x) { return x && x.status === 'PENDING'; }).length;
-    if (pendingCount > 0) {
-      badge.innerText = pendingCount;
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
+    var pendingItems = list.filter(function(x) { return x && x.status === 'PENDING'; });
+    var pendingCount = pendingItems.length;
+
+    if (badge) {
+      if (pendingCount > 0) {
+        badge.innerText = pendingCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    if (banner) {
+      if (pendingCount > 0) {
+        if (txtBanner) {
+          txtBanner.innerText = 'Ada ' + pendingCount + ' pengajuan izin baru menunggu persetujuan Anda!';
+        }
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
     }
   } else {
     API.getDaftarIzinAdmin().then(function(res) {
