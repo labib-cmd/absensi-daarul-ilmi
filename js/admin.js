@@ -410,6 +410,58 @@ function submitEditJamGuru(e) {
   });
 }
 
+function parseTanggalPresensi(tglStr) {
+  if (!tglStr) return null;
+  var p = tglStr.split('/');
+  if (p.length === 3) {
+    var d = parseInt(p[0], 10);
+    var m = parseInt(p[1], 10) - 1;
+    var y = parseInt(p[2], 10);
+    if (!isNaN(d) && !isNaN(m) && !isNaN(y)) return new Date(y, m, d);
+  }
+  return null;
+}
+
+function filterRecordsByRange(list, range) {
+  list = list || [];
+  if (!range || range === 'all') return list;
+  var now = new Date();
+  var todayStr = (('0' + now.getDate()).slice(-2)) + '/' + (('0' + (now.getMonth() + 1)).slice(-2)) + '/' + now.getFullYear();
+
+  if (range === 'today') {
+    return list.filter(function(r) { return r.tanggal === todayStr; });
+  }
+
+  var day = now.getDay();
+  var diff = (day + 6) % 7;
+  var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff, 0, 0, 0, 0);
+  var sunday = new Date(monday.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+  var sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
+
+  if (range === 'pekanan') {
+    return list.filter(function(r) {
+      var d = parseTanggalPresensi(r.tanggal);
+      return d && ((d >= monday && d <= sunday) || (d >= sevenDaysAgo && d <= now));
+    });
+  }
+
+  if (range === 'bulanan') {
+    return list.filter(function(r) {
+      var d = parseTanggalPresensi(r.tanggal);
+      return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+  }
+
+  if (range === 'tahunan') {
+    return list.filter(function(r) {
+      var d = parseTanggalPresensi(r.tanggal);
+      return d && d.getFullYear() === now.getFullYear();
+    });
+  }
+
+  return list;
+}
+
 function calculatePerGuruStats(rekapList, guruList) {
   rekapList = rekapList || [];
   guruList = guruList || [];
@@ -489,15 +541,239 @@ function calculatePerGuruStats(rekapList, guruList) {
   };
 }
 
+function calculateTriplePeriodStats(allRekapList, guruList) {
+  allRekapList = allRekapList || [];
+  guruList = guruList || [];
+
+  var now = new Date();
+  var day = now.getDay();
+  var diff = (day + 6) % 7;
+  var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff, 0, 0, 0, 0);
+  var sunday = new Date(monday.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+  var sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
+
+  var listMinggu = [];
+  var listBulan = [];
+  var listTahun = [];
+
+  allRekapList.forEach(function(r) {
+    var d = parseTanggalPresensi(r.tanggal);
+    if (!d) return;
+
+    if ((d >= monday && d <= sunday) || (d >= sevenDaysAgo && d <= now)) {
+      listMinggu.push(r);
+    }
+    if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+      listBulan.push(r);
+    }
+    if (d.getFullYear() === now.getFullYear()) {
+      listTahun.push(r);
+    }
+  });
+
+  var statsMinggu = calculatePerGuruStats(listMinggu, guruList);
+  var statsBulan = calculatePerGuruStats(listBulan, guruList);
+  var statsTahun = calculatePerGuruStats(listTahun, guruList);
+
+  var mapMinggu = {};
+  statsMinggu.perGuruStats.forEach(function(s) { mapMinggu[s.id_user] = s; });
+
+  var mapBulan = {};
+  statsBulan.perGuruStats.forEach(function(s) { mapBulan[s.id_user] = s; });
+
+  var mapTahun = {};
+  statsTahun.perGuruStats.forEach(function(s) { mapTahun[s.id_user] = s; });
+
+  var baseGuruList = (guruList && guruList.length > 0) ? guruList : statsBulan.perGuruStats;
+  var combinedGuruList = baseGuruList.map(function(g) {
+    var sm = mapMinggu[g.id_user] || { totalHadir: 0, persenHadir: 0, tepatCount: 0, lambatCount: 0 };
+    var sb = mapBulan[g.id_user] || { totalHadir: 0, persenHadir: 0, tepatCount: 0, lambatCount: 0 };
+    var st = mapTahun[g.id_user] || { totalHadir: 0, persenHadir: 0, tepatCount: 0, lambatCount: 0 };
+
+    return {
+      id_user: g.id_user,
+      nama_guru: g.nama_guru || 'Guru',
+      minggu: {
+        totalHadir: sm.totalHadir,
+        hariEfektif: statsMinggu.totalHariEfektif,
+        persenHadir: sm.persenHadir,
+        tepatCount: sm.tepatCount,
+        lambatCount: sm.lambatCount
+      },
+      bulan: {
+        totalHadir: sb.totalHadir,
+        hariEfektif: statsBulan.totalHariEfektif,
+        persenHadir: sb.persenHadir,
+        tepatCount: sb.tepatCount,
+        lambatCount: sb.lambatCount
+      },
+      tahun: {
+        totalHadir: st.totalHadir,
+        hariEfektif: statsTahun.totalHariEfektif,
+        persenHadir: st.persenHadir,
+        tepatCount: st.tepatCount,
+        lambatCount: st.lambatCount
+      }
+    };
+  });
+
+  combinedGuruList.sort(function(a, b) {
+    if (b.bulan.persenHadir !== a.bulan.persenHadir) return b.bulan.persenHadir - a.bulan.persenHadir;
+    return a.nama_guru.localeCompare(b.nama_guru);
+  });
+
+  return {
+    statsMinggu: statsMinggu,
+    statsBulan: statsBulan,
+    statsTahun: statsTahun,
+    combinedGuruList: combinedGuruList
+  };
+}
+
+function updatePeriodPill(idPersen, idRasio, persenVal, rasioVal) {
+  var elP = document.getElementById(idPersen);
+  var elR = document.getElementById(idRasio);
+  if (elP) elP.innerText = persenVal + '%';
+  if (elR) elR.innerText = rasioVal;
+}
+
+function renderTabelPersenMultiPeriode(tripleStats) {
+  var tbody = document.getElementById('tblPersenPerGuru');
+  var tfoot = document.getElementById('tfootPersenPerGuru');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  var list = tripleStats.combinedGuruList || [];
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-slate-400">Belum ada data kehadiran.</td></tr>';
+  } else {
+    list.forEach(function(s, idx) {
+      var tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-50 transition cursor-pointer';
+      tr.title = 'Klik untuk melihat detail riwayat presensi ' + s.nama_guru;
+      tr.onclick = function() {
+        var selG = document.getElementById('filterGuru');
+        if (selG) {
+          selG.value = s.id_user;
+          switchRekapViewMode('log');
+          loadAdminData();
+        }
+      };
+
+      function getBadge(pct) {
+        if (pct >= 85) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+        if (pct >= 60) return 'bg-amber-100 text-amber-800 border-amber-300';
+        return 'bg-rose-100 text-rose-800 border-rose-300';
+      }
+
+      var tdNo = '<td class="p-1.5 text-center text-slate-400 font-semibold">' + (idx + 1) + '</td>';
+      var tdNama = '<td class="p-1.5 font-bold text-slate-700 leading-tight">' + s.nama_guru + '</td>';
+      var tdM = '<td class="p-1.5 text-center whitespace-nowrap">' +
+        '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-black border ' + getBadge(s.minggu.persenHadir) + '">' + s.minggu.persenHadir + '%</span>' +
+        '<span class="block text-[8px] text-slate-400 mt-0.5">' + s.minggu.totalHadir + '/' + s.minggu.hariEfektif + ' Hari</span>' +
+        '</td>';
+      var tdB = '<td class="p-1.5 text-center whitespace-nowrap">' +
+        '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-black border ' + getBadge(s.bulan.persenHadir) + '">' + s.bulan.persenHadir + '%</span>' +
+        '<span class="block text-[8px] text-slate-400 mt-0.5">' + s.bulan.totalHadir + '/' + s.bulan.hariEfektif + ' Hari</span>' +
+        '</td>';
+      var tdT = '<td class="p-1.5 text-center whitespace-nowrap">' +
+        '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-black border ' + getBadge(s.tahun.persenHadir) + '">' + s.tahun.persenHadir + '%</span>' +
+        '<span class="block text-[8px] text-slate-400 mt-0.5">' + s.tahun.totalHadir + '/' + s.tahun.hariEfektif + ' Hari</span>' +
+        '</td>';
+      var tdAksi = '<td class="p-1.5 text-center"><i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 inline"></i></td>';
+
+      tr.innerHTML = tdNo + tdNama + tdM + tdB + tdT + tdAksi;
+      tbody.appendChild(tr);
+    });
+  }
+
+  if (tfoot) {
+    tfoot.innerHTML = '<tr>' +
+      '<td colspan="2" class="p-2 text-slate-800 text-[10px] uppercase font-black tracking-wide">TOTAL SELURUH GURU</td>' +
+      '<td class="p-2 text-center whitespace-nowrap text-emerald-800">' +
+        '<span class="text-xs font-black">' + tripleStats.statsMinggu.persenKolektif + '%</span>' +
+        '<span class="block text-[8px] text-slate-500">' + tripleStats.statsMinggu.totalAktualHadir + '/' + tripleStats.statsMinggu.totalTargetSesi + ' Sesi</span>' +
+      '</td>' +
+      '<td class="p-2 text-center whitespace-nowrap text-teal-800">' +
+        '<span class="text-xs font-black">' + tripleStats.statsBulan.persenKolektif + '%</span>' +
+        '<span class="block text-[8px] text-slate-500">' + tripleStats.statsBulan.totalAktualHadir + '/' + tripleStats.statsBulan.totalTargetSesi + ' Sesi</span>' +
+      '</td>' +
+      '<td class="p-2 text-center whitespace-nowrap text-indigo-800">' +
+        '<span class="text-xs font-black">' + tripleStats.statsTahun.persenKolektif + '%</span>' +
+        '<span class="block text-[8px] text-slate-500">' + tripleStats.statsTahun.totalAktualHadir + '/' + tripleStats.statsTahun.totalTargetSesi + ' Sesi</span>' +
+      '</td>' +
+      '<td></td>' +
+    '</tr>';
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderTabelLogPresensi(logList) {
+  var tbodyLog = document.getElementById('tblRekapAdmin');
+  if (!tbodyLog) return;
+  tbodyLog.innerHTML = '';
+  if (!logList || logList.length === 0) {
+    tbodyLog.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-400">Tidak ada riwayat presensi pada periode ini.</td></tr>';
+    return;
+  }
+  logList.forEach(function(r) {
+    var tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 transition';
+    
+    var statMColor = r.status_masuk === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50';
+    var statPColor = r.status_pulang === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50';
+
+    var safeAlasanM = (r.alasan_masuk || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    var safeAlasanP = (r.alasan_pulang || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    var safeNama = (r.nama_guru || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+    var btnFotoM = r.foto_masuk ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_masuk + '\', \'' + safeNama + '\', \'Masuk\', \'' + safeAlasanM + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Masuk"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
+    var btnFotoP = r.foto_pulang ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_pulang + '\', \'' + safeNama + '\', \'Pulang\', \'' + safeAlasanP + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Pulang"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
+
+    var ketAlasanM = r.alasan_masuk 
+      ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_masuk + '</div>' 
+      : '';
+    var ketAlasanP = r.alasan_pulang 
+      ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_pulang + '</div>' 
+      : '';
+
+    var labelHariTgl = (r.hari ? '<span class="font-bold text-slate-800">' + r.hari + ',</span> ' : '') + r.tanggal;
+
+    var tdG = '<td class="p-1.5 align-top font-bold text-slate-700">' + r.nama_guru + '</td>';
+    var tdT = '<td class="p-1.5 align-top text-slate-500 whitespace-nowrap">' + labelHariTgl + '</td>';
+    var tdM = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_masuk || '--') + '</span> ' + 
+      (r.status_masuk ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statMColor + '">' + r.status_masuk + '</span>' : '') + btnFotoM + ketAlasanM + '</td>';
+    var tdP = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_pulang || '--') + '</span> ' + 
+      (r.status_pulang ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statPColor + '">' + r.status_pulang + '</span>' : '') + btnFotoP + ketAlasanP + '</td>';
+    
+    tr.innerHTML = tdG + tdT + tdM + tdP;
+    tbodyLog.appendChild(tr);
+  });
+  if (window.lucide) lucide.createIcons();
+}
+
 function renderRekapStatsAndTables(rekapList, guruList) {
   var selGuru = document.getElementById('filterGuru');
   var selectedGuruId = (selGuru && selGuru.value) ? selGuru.value : 'ALL';
+  var selRange = document.getElementById('filterRange');
+  var currentRange = (selRange && selRange.value) ? selRange.value : (stateAdmin.range || 'bulanan');
 
-  var statObj = calculatePerGuruStats(rekapList, guruList);
-  var totalHariEfektif = statObj.totalHariEfektif;
-  var perGuruStats = statObj.perGuruStats;
+  // Hitung komparasi 3 periode (Minggu Ini, Bulan Ini, Tahun Ini) dari seluruh data
+  var tripleStats = calculateTriplePeriodStats(rekapList, guruList);
 
-  // Update Card Ringkasan Persentase Rekapan
+  // Saring data untuk log presensi sesuai filter rentang waktu & guru terpilih
+  var filteredForLog = filterRecordsByRange(rekapList, currentRange);
+  if (selectedGuruId !== 'ALL') {
+    filteredForLog = filteredForLog.filter(function(r) { return r.id_user === selectedGuruId; });
+  }
+
+  // Statistik untuk rentang yang sedang aktif dipilih di dropdown
+  var statObjActive = calculatePerGuruStats(filteredForLog, guruList);
+  var totalHariEfektif = statObjActive.totalHariEfektif;
+  var perGuruStats = statObjActive.perGuruStats;
+
+  // Update Card Ringkasan Utama
   var titleEl = document.getElementById('titlePersenRekap');
   var badgeEl = document.getElementById('badgePersenTotal');
   var barEl = document.getElementById('barPersenTotal');
@@ -506,118 +782,54 @@ function renderRekapStatsAndTables(rekapList, guruList) {
   var txtLambatEl = document.getElementById('txtStatTerlambat');
   var badgeCount = document.getElementById('rekapCountBadge');
 
-  if (badgeCount) badgeCount.innerText = rekapList.length + ' data presensi';
+  if (badgeCount) badgeCount.innerText = filteredForLog.length + ' data presensi';
   if (txtHariEl) txtHariEl.innerText = totalHariEfektif + ' Hari';
+
+  var labelPeriode = currentRange === 'pekanan' ? ' (Pekanan)' : (currentRange === 'bulanan' ? ' (Bulanan)' : (currentRange === 'tahunan' ? ' (Tahunan)' : ''));
 
   if (selectedGuruId !== 'ALL') {
     var selectedStat = perGuruStats.find(function(s) { return s.id_user === selectedGuruId; });
-    if (selectedStat) {
-      if (titleEl) titleEl.innerText = 'Persentase: ' + selectedStat.nama_guru;
-      if (badgeEl) badgeEl.innerText = selectedStat.persenHadir + '%';
-      if (barEl) barEl.style.width = Math.min(100, selectedStat.persenHadir) + '%';
-      var tepatPct = selectedStat.totalHadir > 0 ? ((selectedStat.tepatCount / selectedStat.totalHadir) * 100).toFixed(0) : '0';
-      var lambatPct = selectedStat.totalHadir > 0 ? ((selectedStat.lambatCount / selectedStat.totalHadir) * 100).toFixed(0) : '0';
-      if (txtTepatEl) txtTepatEl.innerText = selectedStat.tepatCount + ' (' + tepatPct + '%)';
-      if (txtLambatEl) txtLambatEl.innerText = selectedStat.lambatCount + ' (' + lambatPct + '%)';
+    var nameGuruSelected = selectedStat ? selectedStat.nama_guru : 'Guru';
+    var pVal = selectedStat ? selectedStat.persenHadir : 0;
+    var tVal = selectedStat ? selectedStat.tepatCount : 0;
+    var lVal = selectedStat ? selectedStat.lambatCount : 0;
+    var hVal = selectedStat ? selectedStat.totalHadir : 0;
+
+    if (titleEl) titleEl.innerText = 'Persentase: ' + nameGuruSelected + labelPeriode;
+    if (badgeEl) badgeEl.innerText = pVal + '%';
+    if (barEl) barEl.style.width = Math.min(100, pVal) + '%';
+    var tepatPct = hVal > 0 ? ((tVal / hVal) * 100).toFixed(0) : '0';
+    var lambatPct = hVal > 0 ? ((lVal / hVal) * 100).toFixed(0) : '0';
+    if (txtTepatEl) txtTepatEl.innerText = tVal + ' (' + tepatPct + '%)';
+    if (txtLambatEl) txtLambatEl.innerText = lVal + ' (' + lambatPct + '%)';
+
+    // Update 3 Pills untuk Guru Tersebut
+    var sgTriple = tripleStats.combinedGuruList.find(function(x) { return x.id_user === selectedGuruId; });
+    if (sgTriple) {
+      updatePeriodPill('txtPillPersenMinggu', 'txtPillRasioMinggu', sgTriple.minggu.persenHadir, sgTriple.minggu.totalHadir + '/' + sgTriple.minggu.hariEfektif + ' Hari');
+      updatePeriodPill('txtPillPersenBulan', 'txtPillRasioBulan', sgTriple.bulan.persenHadir, sgTriple.bulan.totalHadir + '/' + sgTriple.bulan.hariEfektif + ' Hari');
+      updatePeriodPill('txtPillPersenTahun', 'txtPillRasioTahun', sgTriple.tahun.persenHadir, sgTriple.tahun.totalHadir + '/' + sgTriple.tahun.hariEfektif + ' Hari');
     }
   } else {
-    if (titleEl) titleEl.innerText = 'Persentase Kehadiran Seluruh Guru';
-    if (badgeEl) badgeEl.innerText = statObj.persenKolektif + '%';
-    if (barEl) barEl.style.width = Math.min(100, statObj.persenKolektif) + '%';
-    var tepatPctAll = statObj.totalAktualHadir > 0 ? ((statObj.totalTepat / statObj.totalAktualHadir) * 100).toFixed(0) : '0';
-    var lambatPctAll = statObj.totalAktualHadir > 0 ? ((statObj.totalLambat / statObj.totalAktualHadir) * 100).toFixed(0) : '0';
-    if (txtTepatEl) txtTepatEl.innerText = statObj.totalTepat + ' (' + tepatPctAll + '%)';
-    if (txtLambatEl) txtLambatEl.innerText = statObj.totalLambat + ' (' + lambatPctAll + '%)';
+    if (titleEl) titleEl.innerText = 'Persentase Seluruh Guru' + labelPeriode;
+    if (badgeEl) badgeEl.innerText = statObjActive.persenKolektif + '%';
+    if (barEl) barEl.style.width = Math.min(100, statObjActive.persenKolektif) + '%';
+    var tepatPctAll = statObjActive.totalAktualHadir > 0 ? ((statObjActive.totalTepat / statObjActive.totalAktualHadir) * 100).toFixed(0) : '0';
+    var lambatPctAll = statObjActive.totalAktualHadir > 0 ? ((statObjActive.totalLambat / statObjActive.totalAktualHadir) * 100).toFixed(0) : '0';
+    if (txtTepatEl) txtTepatEl.innerText = statObjActive.totalTepat + ' (' + tepatPctAll + '%)';
+    if (txtLambatEl) txtLambatEl.innerText = statObjActive.totalLambat + ' (' + lambatPctAll + '%)';
+
+    // Update 3 Pills untuk Seluruh Guru Kolektif
+    updatePeriodPill('txtPillPersenMinggu', 'txtPillRasioMinggu', tripleStats.statsMinggu.persenKolektif, tripleStats.statsMinggu.totalAktualHadir + '/' + tripleStats.statsMinggu.totalTargetSesi + ' Sesi');
+    updatePeriodPill('txtPillPersenBulan', 'txtPillRasioBulan', tripleStats.statsBulan.persenKolektif, tripleStats.statsBulan.totalAktualHadir + '/' + tripleStats.statsBulan.totalTargetSesi + ' Sesi');
+    updatePeriodPill('txtPillPersenTahun', 'txtPillRasioTahun', tripleStats.statsTahun.persenKolektif, tripleStats.statsTahun.totalAktualHadir + '/' + tripleStats.statsTahun.totalTargetSesi + ' Sesi');
   }
 
-  // Render Tabel Persentase Per Guru
-  var tbodyPersen = document.getElementById('tblPersenPerGuru');
-  if (tbodyPersen) {
-    tbodyPersen.innerHTML = '';
-    if (perGuruStats.length === 0) {
-      tbodyPersen.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-slate-400">Belum ada data kehadiran untuk periode ini.</td></tr>';
-    } else {
-      perGuruStats.forEach(function(s, idx) {
-        var tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50 transition cursor-pointer';
-        tr.title = 'Klik untuk memfilter riwayat ' + s.nama_guru;
-        tr.onclick = function() {
-          var selG = document.getElementById('filterGuru');
-          if (selG) {
-            selG.value = s.id_user;
-            switchRekapViewMode('log');
-            loadAdminData();
-          }
-        };
-
-        var badgeColor = 'bg-rose-100 text-rose-800 border-rose-200';
-        var barColor = 'bg-rose-500';
-        if (s.persenHadir >= 85) {
-          badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
-          barColor = 'bg-emerald-500';
-        } else if (s.persenHadir >= 60) {
-          badgeColor = 'bg-amber-100 text-amber-800 border-amber-300';
-          barColor = 'bg-amber-500';
-        }
-
-        tr.innerHTML = '<td class="p-1.5 text-center text-slate-400 font-semibold">' + (idx + 1) + '</td>' +
-          '<td class="p-1.5 font-bold text-slate-700 leading-tight">' + s.nama_guru + '</td>' +
-          '<td class="p-1.5 text-center font-semibold text-slate-800">' + s.totalHadir + '/' + totalHariEfektif + '</td>' +
-          '<td class="p-1.5 text-center font-bold text-emerald-700">' + s.tepatCount + '</td>' +
-          '<td class="p-1.5 text-center font-bold text-rose-700">' + s.lambatCount + '</td>' +
-          '<td class="p-1.5 text-right whitespace-nowrap">' +
-            '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-black border ' + badgeColor + '">' + s.persenHadir + '%</span>' +
-            '<div class="w-12 ml-auto bg-slate-100 rounded-full h-1 mt-1 overflow-hidden">' +
-              '<div class="' + barColor + ' h-1 rounded-full" style="width: ' + Math.min(100, s.persenHadir) + '%"></div>' +
-            '</div>' +
-          '</td>';
-        tbodyPersen.appendChild(tr);
-      });
-    }
-  }
+  // Render Tabel Persentase Per Guru (Kolom: Minggu Ini, Bulan Ini, Tahun Ini)
+  renderTabelPersenMultiPeriode(tripleStats);
 
   // Render Tabel Log Presensi
-  var tbodyLog = document.getElementById('tblRekapAdmin');
-  if (tbodyLog) {
-    tbodyLog.innerHTML = '';
-    if (rekapList.length === 0) {
-      tbodyLog.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-400">Tidak ada rekap data.</td></tr>';
-    } else {
-      rekapList.forEach(function(r) {
-        var tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50 transition';
-        
-        var statMColor = r.status_masuk === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50';
-        var statPColor = r.status_pulang === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50';
-
-        var safeAlasanM = (r.alasan_masuk || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        var safeAlasanP = (r.alasan_pulang || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        var safeNama = (r.nama_guru || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
-        var btnFotoM = r.foto_masuk ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_masuk + '\', \'' + safeNama + '\', \'Masuk\', \'' + safeAlasanM + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Masuk"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
-        var btnFotoP = r.foto_pulang ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_pulang + '\', \'' + safeNama + '\', \'Pulang\', \'' + safeAlasanP + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Pulang"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
-
-        var ketAlasanM = r.alasan_masuk 
-          ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_masuk + '</div>' 
-          : '';
-        var ketAlasanP = r.alasan_pulang 
-          ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_pulang + '</div>' 
-          : '';
-
-        var labelHariTgl = (r.hari ? '<span class="font-bold text-slate-800">' + r.hari + ',</span> ' : '') + r.tanggal;
-
-        var tdG = '<td class="p-1.5 align-top font-bold text-slate-700">' + r.nama_guru + '</td>';
-        var tdT = '<td class="p-1.5 align-top text-slate-500 whitespace-nowrap">' + labelHariTgl + '</td>';
-        var tdM = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_masuk || '--') + '</span> ' + 
-          (r.status_masuk ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statMColor + '">' + r.status_masuk + '</span>' : '') + btnFotoM + ketAlasanM + '</td>';
-        var tdP = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_pulang || '--') + '</span> ' + 
-          (r.status_pulang ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statPColor + '">' + r.status_pulang + '</span>' : '') + btnFotoP + ketAlasanP + '</td>';
-        
-        tr.innerHTML = tdG + tdT + tdM + tdP;
-        tbodyLog.appendChild(tr);
-      });
-    }
-  }
+  renderTabelLogPresensi(filteredForLog);
 }
 
 function renderAdminDashboard(res) {
@@ -862,6 +1074,17 @@ function submitApprovalAdmin(status) {
   });
 }
 
+function fallbackPrintWindow(htmlDoc) {
+  var printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    showNotif('Popup Terblokir', 'Harap izinkan popup pada browser Anda untuk membuka dokumen.', false);
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(htmlDoc);
+  printWindow.document.close();
+}
+
 function downloadRekapPdf() {
   var sb = typeof getSupabase === 'function' ? getSupabase() : null;
   var selGuru = document.getElementById('filterGuru');
@@ -897,47 +1120,52 @@ function downloadRekapPdf() {
       return;
     }
 
+    var namaGuruClean = selectedGuruName ? selectedGuruName.replace(/[^a-zA-Z0-9]/g, '_') : 'Semua_Guru';
+    var tglFile = new Date().toISOString().slice(0, 10);
+    var namaFileDownload = 'Rekap_Presensi_' + namaGuruClean + '_' + tglFile;
+
     var tglCetak = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     var subJudul = selectedGuruName ? 'Nama Guru: ' + selectedGuruName : 'Seluruh Guru & Karyawan';
 
-    // Hitung Persentase Kehadiran untuk Laporan
-    var statObj = calculatePerGuruStats(data, cachedGuruList);
+    // Hitung Komparasi 3 Periode (Minggu Ini, Bulan Ini, Tahun Ini)
+    var allSource = (cachedRekapData && cachedRekapData.length > 0) ? cachedRekapData : data;
+    var tripleStats = calculateTriplePeriodStats(allSource, cachedGuruList);
     var isFilteredSingleGuru = (selectedGuruId !== 'ALL');
-    var ringkasanPersenVal = statObj.persenKolektif;
-    var ringkasanHadirVal = statObj.totalAktualHadir;
-    var ringkasanTargetVal = statObj.totalTargetSesi;
-    var ringkasanTepatVal = statObj.totalTepat;
-    var ringkasanLambatVal = statObj.totalLambat;
+
+    var pMinggu = tripleStats.statsMinggu.persenKolektif;
+    var rMinggu = tripleStats.statsMinggu.totalAktualHadir + ' / ' + tripleStats.statsMinggu.totalTargetSesi + ' Sesi';
+    var pBulan = tripleStats.statsBulan.persenKolektif;
+    var rBulan = tripleStats.statsBulan.totalAktualHadir + ' / ' + tripleStats.statsBulan.totalTargetSesi + ' Sesi';
+    var pTahun = tripleStats.statsTahun.persenKolektif;
+    var rTahun = tripleStats.statsTahun.totalAktualHadir + ' / ' + tripleStats.statsTahun.totalTargetSesi + ' Sesi';
 
     if (isFilteredSingleGuru) {
-      var singleStat = statObj.perGuruStats.find(function(x) { return x.id_user === selectedGuruId || x.nama_guru === selectedGuruName; });
-      if (singleStat) {
-        ringkasanPersenVal = singleStat.persenHadir;
-        ringkasanHadirVal = singleStat.totalHadir;
-        ringkasanTargetVal = statObj.totalHariEfektif;
-        ringkasanTepatVal = singleStat.tepatCount;
-        ringkasanLambatVal = singleStat.lambatCount;
+      var sg = tripleStats.combinedGuruList.find(function(x) { return x.id_user === selectedGuruId || x.nama_guru === selectedGuruName; });
+      if (sg) {
+        pMinggu = sg.minggu.persenHadir;
+        rMinggu = sg.minggu.totalHadir + ' / ' + sg.minggu.hariEfektif + ' Hari';
+        pBulan = sg.bulan.persenHadir;
+        rBulan = sg.bulan.totalHadir + ' / ' + sg.bulan.hariEfektif + ' Hari';
+        pTahun = sg.tahun.persenHadir;
+        rTahun = sg.tahun.totalHadir + ' / ' + sg.tahun.hariEfektif + ' Hari';
       }
     }
 
     var ringkasanBoxHtml = '<div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;">' +
+      '<div style="font-size: 11px; font-weight: bold; color: #166534; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Komparasi Persentase Kehadiran Berdasarkan Periode</div>' +
       '<table style="width: 100%; border: none; margin: 0; font-size: 11px;">' +
         '<tr style="background: transparent;">' +
-          '<td style="border: none; padding: 4px; vertical-align: top; width: 25%;">' +
-            '<div style="font-size: 10px; color: #166534; font-weight: bold; text-transform: uppercase;">Hari Efektif Presensi</div>' +
-            '<div style="font-size: 16px; font-weight: bold; color: #0f172a;">' + statObj.totalHariEfektif + ' <span style="font-size: 11px; font-weight: normal; color: #64748b;">Hari</span></div>' +
+          '<td style="border: none; padding: 4px; vertical-align: top; width: 33.3%;">' +
+            '<div style="font-size: 10px; color: #166534; font-weight: bold; text-transform: uppercase;">1. Minggu Ini (Pekanan)</div>' +
+            '<div style="font-size: 16px; font-weight: bold; color: #15803d;">' + pMinggu + '% <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + rMinggu + ')</span></div>' +
           '</td>' +
-          '<td style="border: none; padding: 4px; vertical-align: top; width: 25%;">' +
-            '<div style="font-size: 10px; color: #166534; font-weight: bold; text-transform: uppercase;">' + (isFilteredSingleGuru ? 'Persentase Kehadiran' : 'Tingkat Kehadiran Total') + '</div>' +
-            '<div style="font-size: 16px; font-weight: bold; color: #15803d;">' + ringkasanPersenVal + '% <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + ringkasanHadirVal + '/' + ringkasanTargetVal + ')</span></div>' +
+          '<td style="border: none; padding: 4px; vertical-align: top; width: 33.3%;">' +
+            '<div style="font-size: 10px; color: #0f766e; font-weight: bold; text-transform: uppercase;">2. Bulan Ini (Bulanan)</div>' +
+            '<div style="font-size: 16px; font-weight: bold; color: #0f766e;">' + pBulan + '% <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + rBulan + ')</span></div>' +
           '</td>' +
-          '<td style="border: none; padding: 4px; vertical-align: top; width: 25%;">' +
-            '<div style="font-size: 10px; color: #166534; font-weight: bold; text-transform: uppercase;">Tepat Waktu</div>' +
-            '<div style="font-size: 16px; font-weight: bold; color: #16a34a;">' + ringkasanTepatVal + ' <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + (ringkasanHadirVal > 0 ? ((ringkasanTepatVal / ringkasanHadirVal) * 100).toFixed(1) : 0) + '%)</span></div>' +
-          '</td>' +
-          '<td style="border: none; padding: 4px; vertical-align: top; width: 25%;">' +
-            '<div style="font-size: 10px; color: #991b1b; font-weight: bold; text-transform: uppercase;">Terlambat</div>' +
-            '<div style="font-size: 16px; font-weight: bold; color: #dc2626;">' + ringkasanLambatVal + ' <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + (ringkasanHadirVal > 0 ? ((ringkasanLambatVal / ringkasanHadirVal) * 100).toFixed(1) : 0) + '%)</span></div>' +
+          '<td style="border: none; padding: 4px; vertical-align: top; width: 33.3%;">' +
+            '<div style="font-size: 10px; color: #4338ca; font-weight: bold; text-transform: uppercase;">3. Tahun Ini (Tahunan)</div>' +
+            '<div style="font-size: 16px; font-weight: bold; color: #4338ca;">' + pTahun + '% <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + rTahun + ')</span></div>' +
           '</td>' +
         '</tr>' +
       '</table>' +
@@ -945,32 +1173,34 @@ function downloadRekapPdf() {
 
     // Tabel Ringkasan Persentase Guru (jika seluruh guru)
     var tabelPersenPerGuruHtml = '';
-    if (!isFilteredSingleGuru && statObj.perGuruStats.length > 0) {
+    if (!isFilteredSingleGuru && tripleStats.combinedGuruList.length > 0) {
       var rowsGuruPersenHtml = '';
-      statObj.perGuruStats.forEach(function(t, idx) {
-        var badgeColor = t.persenHadir >= 90 ? '#15803d' : (t.persenHadir >= 75 ? '#d97706' : '#dc2626');
-        var badgeBg = t.persenHadir >= 90 ? '#dcfce7' : (t.persenHadir >= 75 ? '#fef3c7' : '#fee2e2');
+      tripleStats.combinedGuruList.forEach(function(t, idx) {
+        function getBadgeStyle(pct) {
+          var bg = pct >= 85 ? '#dcfce7' : (pct >= 60 ? '#fef3c7' : '#fee2e2');
+          var col = pct >= 85 ? '#15803d' : (pct >= 60 ? '#b45309' : '#dc2626');
+          return 'display: inline-block; padding: 2px 7px; border-radius: 9999px; font-weight: bold; font-size: 10px; background: ' + bg + '; color: ' + col + ';';
+        }
+
         rowsGuruPersenHtml += '<tr>' +
           '<td style="text-align: center;">' + (idx + 1) + '</td>' +
           '<td><strong>' + t.nama_guru + '</strong></td>' +
-          '<td style="text-align: center;">' + t.totalHadir + ' / ' + statObj.totalHariEfektif + ' Hari</td>' +
-          '<td style="text-align: center; color: #16a34a; font-weight: 600;">' + t.tepatCount + '</td>' +
-          '<td style="text-align: center; color: #dc2626; font-weight: 600;">' + t.lambatCount + '</td>' +
-          '<td style="text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-weight: bold; font-size: 11px; background: ' + badgeBg + '; color: ' + badgeColor + ';">' + t.persenHadir + '%</span></td>' +
+          '<td style="text-align: center;"><span style="' + getBadgeStyle(t.minggu.persenHadir) + '">' + t.minggu.persenHadir + '%</span> <span style="color: #64748b; font-size: 10px;">(' + t.minggu.totalHadir + '/' + t.minggu.hariEfektif + ')</span></td>' +
+          '<td style="text-align: center;"><span style="' + getBadgeStyle(t.bulan.persenHadir) + '">' + t.bulan.persenHadir + '%</span> <span style="color: #64748b; font-size: 10px;">(' + t.bulan.totalHadir + '/' + t.bulan.hariEfektif + ')</span></td>' +
+          '<td style="text-align: center;"><span style="' + getBadgeStyle(t.tahun.persenHadir) + '">' + t.tahun.persenHadir + '%</span> <span style="color: #64748b; font-size: 10px;">(' + t.tahun.totalHadir + '/' + t.tahun.hariEfektif + ')</span></td>' +
         '</tr>';
       });
 
       tabelPersenPerGuruHtml = '<div style="margin-top: 15px; margin-bottom: 25px;">' +
-        '<div style="font-size: 12px; font-weight: bold; color: #065f46; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">1. Ringkasan Persentase Kehadiran Per Guru / Karyawan</div>' +
+        '<div style="font-size: 12px; font-weight: bold; color: #065f46; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">1. Ringkasan Persentase Kehadiran Per Guru (Mingguan, Bulanan, Tahunan)</div>' +
         '<table>' +
           '<thead>' +
             '<tr>' +
               '<th style="width: 35px;">No</th>' +
               '<th>Nama Guru / Karyawan</th>' +
-              '<th style="width: 140px;">Hari Hadir / Efektif</th>' +
-              '<th style="width: 100px;">Tepat Waktu</th>' +
-              '<th style="width: 100px;">Terlambat</th>' +
-              '<th style="width: 120px;">Persentase</th>' +
+              '<th style="width: 140px;">Minggu Ini</th>' +
+              '<th style="width: 140px;">Bulan Ini</th>' +
+              '<th style="width: 140px;">Tahun Ini</th>' +
             '</tr>' +
           '</thead>' +
           '<tbody>' + rowsGuruPersenHtml + '</tbody>' +
@@ -994,33 +1224,7 @@ function downloadRekapPdf() {
       '</tr>';
     });
 
-    var printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      showNotif('Popup Terblokir', 'Harap izinkan popup pada browser Anda untuk membuka pratinjau cetak PDF.', false);
-      return;
-    }
-
-    var htmlDoc = '<!DOCTYPE html>' +
-      '<html lang="id"><head><meta charset="UTF-8"><title>Rekap Presensi - ' + (selectedGuruName || 'SMA Islam Daarul Ilmi Depok') + '</title>' +
-      '<style>' +
-      'body { font-family: "Segoe UI", Arial, sans-serif; padding: 25px; color: #1e293b; line-height: 1.4; }' +
-      '.kop { border-bottom: 3px double #065f46; padding-bottom: 12px; margin-bottom: 18px; text-align: center; }' +
-      '.kop h2 { margin: 0; font-size: 20px; color: #065f46; letter-spacing: 0.5px; }' +
-      '.kop h3 { margin: 4px 0 0 0; font-size: 13px; font-weight: 600; color: #334155; }' +
-      '.kop p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; }' +
-      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px 0 2px 0; letter-spacing: 0.8px; color: #0f172a; }' +
-      '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 4px; }' +
-      '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 16px; }' +
-      'table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }' +
-      'th, td { border: 1px solid #cbd5e1; padding: 7px 9px; }' +
-      'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 10px; font-weight: bold; }' +
-      'tr:nth-child(even) { background-color: #f8fafc; }' +
-      '.ttd-container { display: flex; justify-content: space-between; margin-top: 35px; font-size: 12px; page-break-inside: avoid; }' +
-      '.ttd-box { width: 220px; text-align: center; }' +
-      '.ttd-space { height: 65px; }' +
-      '@media print { @page { size: A4 landscape; margin: 12mm; } body { padding: 0; } }' +
-      '</style></head><body>' +
-      '<div class="kop">' +
+    var bodyContentHtml = '<div class="kop">' +
         '<h2>SMA ISLAM DAARUL ILMI DEPOK</h2>' +
         '<h3>SISTEM INFORMASI PRESENSI GURU & KARYAWAN</h3>' +
         '<p>Kota Depok, Jawa Barat | Email: info@daarulilmi.sch.id</p>' +
@@ -1057,15 +1261,82 @@ function downloadRekapPdf() {
           '<div class="ttd-space"></div>' +
           '<p><strong>( ........................................ )</strong></p>' +
         '</div>' +
-      '</div>' +
-      '<script>' +
-        'window.onload = function() { window.print(); };' +
-      '<\/script>' +
+      '</div>';
+
+    var htmlDoc = '<!DOCTYPE html>' +
+      '<html lang="id"><head><meta charset="UTF-8"><title>' + namaFileDownload + '</title>' +
+      '<style>' +
+      'body { font-family: "Segoe UI", Arial, sans-serif; padding: 25px; color: #1e293b; line-height: 1.4; }' +
+      '.kop { border-bottom: 3px double #065f46; padding-bottom: 12px; margin-bottom: 18px; text-align: center; }' +
+      '.kop h2 { margin: 0; font-size: 20px; color: #065f46; letter-spacing: 0.5px; }' +
+      '.kop h3 { margin: 4px 0 0 0; font-size: 13px; font-weight: 600; color: #334155; }' +
+      '.kop p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; }' +
+      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px 0 2px 0; letter-spacing: 0.8px; color: #0f172a; }' +
+      '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 4px; }' +
+      '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 16px; }' +
+      'table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }' +
+      'th, td { border: 1px solid #cbd5e1; padding: 7px 9px; }' +
+      'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 10px; font-weight: bold; }' +
+      'tr:nth-child(even) { background-color: #f8fafc; }' +
+      '.ttd-container { display: flex; justify-content: space-between; margin-top: 35px; font-size: 12px; page-break-inside: avoid; }' +
+      '.ttd-box { width: 220px; text-align: center; }' +
+      '.ttd-space { height: 65px; }' +
+      '@media print { @page { size: A4 landscape; margin: 12mm; } body { padding: 0; } }' +
+      '</style></head><body>' +
+      bodyContentHtml +
+      '<script>window.onload = function() { window.print(); };<\/script>' +
       '</body></html>';
 
-    printWindow.document.open();
-    printWindow.document.write(htmlDoc);
-    printWindow.document.close();
+    // Langsung Download Berkas PDF ke Perangkat jika html2pdf tersedia
+    showNotif('Mengunduh PDF', 'Sedang menyiapkan berkas PDF (' + namaFileDownload + '.pdf)...', true);
+
+    if (window.html2pdf) {
+      var container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '1050px';
+      container.style.background = '#ffffff';
+      container.style.padding = '25px';
+      container.style.color = '#1e293b';
+      container.style.fontFamily = '"Segoe UI", Arial, sans-serif';
+      container.innerHTML = '<style>' +
+        '.kop { border-bottom: 3px double #065f46; padding-bottom: 12px; margin-bottom: 18px; text-align: center; }' +
+        '.kop h2 { margin: 0; font-size: 20px; color: #065f46; }' +
+        '.kop h3 { margin: 4px 0 0 0; font-size: 13px; font-weight: 600; color: #334155; }' +
+        '.kop p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; }' +
+        '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px 0 2px 0; color: #0f172a; }' +
+        '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 4px; }' +
+        '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 16px; }' +
+        'table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }' +
+        'th, td { border: 1px solid #cbd5e1; padding: 7px 9px; }' +
+        'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 10px; font-weight: bold; }' +
+        'tr:nth-child(even) { background-color: #f8fafc; }' +
+        '.ttd-container { display: flex; justify-content: space-between; margin-top: 35px; font-size: 12px; }' +
+        '.ttd-box { width: 220px; text-align: center; }' +
+        '.ttd-space { height: 60px; }' +
+        '</style>' + bodyContentHtml;
+      document.body.appendChild(container);
+
+      var opt = {
+        margin: [8, 8, 8, 8],
+        filename: namaFileDownload + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+
+      html2pdf().set(opt).from(container).save().then(function() {
+        if (container.parentNode) document.body.removeChild(container);
+        showNotif('Unduh Berhasil', 'Berkas PDF (' + namaFileDownload + '.pdf) berhasil diunduh ke folder Downloads Anda.', true);
+      }).catch(function(err) {
+        if (container.parentNode) document.body.removeChild(container);
+        console.error('html2pdf fallback to print:', err);
+        fallbackPrintWindow(htmlDoc);
+      });
+    } else {
+      fallbackPrintWindow(htmlDoc);
+    }
   }).catch(function(err) {
     showNotif('Gagal Membuka Dokumen', 'Terjadi kesalahan: ' + (err.message || err), false);
   });
@@ -1150,39 +1421,51 @@ function downloadRekapCsv() {
       var sheetName = selectedGuruName ? selectedGuruName.slice(0, 30) : 'Log Presensi';
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-      // Tambahkan Sheet 2: Ringkasan Persentase Kehadiran Per Guru & Seluruh Guru
-      var statObj = calculatePerGuruStats(data, cachedGuruList);
-      var rowsPersen = statObj.perGuruStats.map(function(t, idx) {
+      // Tambahkan Sheet 2: Ringkasan Persentase Multi-Periode (Mingguan, Bulanan, Tahunan)
+      var allSource = (cachedRekapData && cachedRekapData.length > 0) ? cachedRekapData : data;
+      var tripleStats = calculateTriplePeriodStats(allSource, cachedGuruList);
+
+      var rowsPersen = tripleStats.combinedGuruList.map(function(t, idx) {
         return {
           'No': idx + 1,
           'Nama Guru / Karyawan': t.nama_guru,
-          'Hari Hadir': t.totalHadir,
-          'Total Hari Efektif': statObj.totalHariEfektif,
-          'Tepat Waktu': t.tepatCount,
-          'Terlambat': t.lambatCount,
-          'Persentase Kehadiran': t.persenHadir + '%'
+          'Kehadiran Minggu Ini (%)': t.minggu.persenHadir + '%',
+          'Rasio Minggu Ini': t.minggu.totalHadir + ' / ' + t.minggu.hariEfektif + ' Hari',
+          'Kehadiran Bulan Ini (%)': t.bulan.persenHadir + '%',
+          'Rasio Bulan Ini': t.bulan.totalHadir + ' / ' + t.bulan.hariEfektif + ' Hari',
+          'Kehadiran Tahun Ini (%)': t.tahun.persenHadir + '%',
+          'Rasio Tahun Ini': t.tahun.totalHadir + ' / ' + t.tahun.hariEfektif + ' Hari',
+          'Tepat Waktu (Bulan)': t.bulan.tepatCount,
+          'Terlambat (Bulan)': t.bulan.lambatCount
         };
       });
-      // Baris total kolektif
+
+      // Baris total kolektif seluruh guru
       rowsPersen.push({
         'No': '',
-        'Nama Guru / Karyawan': 'TOTAL KOLEKTIF',
-        'Hari Hadir': statObj.totalAktualHadir,
-        'Total Hari Efektif': statObj.totalTargetSesi,
-        'Tepat Waktu': statObj.totalTepat,
-        'Terlambat': statObj.totalLambat,
-        'Persentase Kehadiran': statObj.persenKolektif + '%'
+        'Nama Guru / Karyawan': 'TOTAL KOLEKTIF SELURUH GURU',
+        'Kehadiran Minggu Ini (%)': tripleStats.statsMinggu.persenKolektif + '%',
+        'Rasio Minggu Ini': tripleStats.statsMinggu.totalAktualHadir + ' / ' + tripleStats.statsMinggu.totalTargetSesi + ' Sesi',
+        'Kehadiran Bulan Ini (%)': tripleStats.statsBulan.persenKolektif + '%',
+        'Rasio Bulan Ini': tripleStats.statsBulan.totalAktualHadir + ' / ' + tripleStats.statsBulan.totalTargetSesi + ' Sesi',
+        'Kehadiran Tahun Ini (%)': tripleStats.statsTahun.persenKolektif + '%',
+        'Rasio Tahun Ini': tripleStats.statsTahun.totalAktualHadir + ' / ' + tripleStats.statsTahun.totalTargetSesi + ' Sesi',
+        'Tepat Waktu (Bulan)': tripleStats.statsBulan.totalTepat,
+        'Terlambat (Bulan)': tripleStats.statsBulan.totalLambat
       });
 
       var wsPersen = XLSX.utils.json_to_sheet(rowsPersen);
       wsPersen['!cols'] = [
         { wch: 6 },   // No
         { wch: 32 },  // Nama Guru
-        { wch: 14 },  // Hari Hadir
-        { wch: 18 },  // Total Hari Efektif
-        { wch: 14 },  // Tepat Waktu
-        { wch: 14 },  // Terlambat
-        { wch: 22 }   // Persentase
+        { wch: 22 },  // % Minggu
+        { wch: 18 },  // Rasio Minggu
+        { wch: 22 },  // % Bulan
+        { wch: 18 },  // Rasio Bulan
+        { wch: 22 },  // % Tahun
+        { wch: 18 },  // Rasio Tahun
+        { wch: 18 },  // Tepat Waktu
+        { wch: 18 }   // Terlambat
       ];
       XLSX.utils.book_append_sheet(wb, wsPersen, 'Persentase Kehadiran');
 

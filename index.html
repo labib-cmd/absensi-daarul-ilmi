@@ -22,6 +22,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- SheetJS (Excel .xlsx Exporter) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- html2pdf.js (Direct PDF File Exporter) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <!-- Stylesheet Modern Terpisah -->
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -373,6 +375,25 @@
                   <span id="txtStatTerlambat" class="font-extrabold text-rose-700 text-xs">0 (0%)</span>
                 </div>
               </div>
+
+              <!-- 3 KARTU KOMPARASI PERIODE (MINGGUAN, BULANAN, TAHUNAN) -->
+              <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-emerald-200/70">
+                <div class="p-2 rounded-xl bg-white/95 border border-emerald-200 text-center shadow-2xs">
+                  <span class="text-[9px] font-bold text-slate-500 uppercase block">Minggu Ini</span>
+                  <span id="txtPillPersenMinggu" class="text-xs font-black text-emerald-700">0%</span>
+                  <span id="txtPillRasioMinggu" class="block text-[8px] text-slate-400 mt-0.5">0/0 Hari</span>
+                </div>
+                <div class="p-2 rounded-xl bg-white/95 border border-teal-200 text-center shadow-2xs">
+                  <span class="text-[9px] font-bold text-slate-500 uppercase block">Bulan Ini</span>
+                  <span id="txtPillPersenBulan" class="text-xs font-black text-teal-700">0%</span>
+                  <span id="txtPillRasioBulan" class="block text-[8px] text-slate-400 mt-0.5">0/0 Hari</span>
+                </div>
+                <div class="p-2 rounded-xl bg-white/95 border border-indigo-200 text-center shadow-2xs">
+                  <span class="text-[9px] font-bold text-slate-500 uppercase block">Tahun Ini</span>
+                  <span id="txtPillPersenTahun" class="text-xs font-black text-indigo-700">0%</span>
+                  <span id="txtPillRasioTahun" class="block text-[8px] text-slate-400 mt-0.5">0/0 Hari</span>
+                </div>
+              </div>
             </div>
 
             <!-- SUB-TAB SWITCHER REKAPITULASI -->
@@ -420,15 +441,17 @@
                 <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
                   <tr>
                     <th class="p-1.5 w-7 text-center">No</th>
-                    <th class="p-1.5">Nama Guru</th>
-                    <th class="p-1.5 text-center">Hadir</th>
-                    <th class="p-1.5 text-center text-emerald-700">Tepat</th>
-                    <th class="p-1.5 text-center text-rose-700">Lambat</th>
-                    <th class="p-1.5 text-right font-bold">% Hadir</th>
+                    <th class="p-1.5 min-w-[100px]">Nama Guru</th>
+                    <th class="p-1.5 text-center text-emerald-800">Minggu Ini</th>
+                    <th class="p-1.5 text-center text-teal-800">Bulan Ini</th>
+                    <th class="p-1.5 text-center text-indigo-800">Tahun Ini</th>
+                    <th class="p-1.5 text-center w-8">Aksi</th>
                   </tr>
                 </thead>
                 <tbody id="tblPersenPerGuru" class="divide-y divide-slate-100">
                 </tbody>
+                <tfoot id="tfootPersenPerGuru" class="bg-emerald-50/80 border-t-2 border-emerald-300 font-bold">
+                </tfoot>
               </table>
             </div>
           </div>
@@ -807,15 +830,15 @@
   </div>
 
   <!-- SCRIPTS STANDAR TERPISAH (CLEAN & MODULAR) -->
-  <script src="js/api.js?v=4.1"></script>
-  <script src="js/auth.js?v=4.1"></script>
-  <script src="js/presensi.js?v=4.1"></script>
-  <script src="js/admin.js?v=4.1"></script>
-  <script src="js/app.js?v=4.1"></script>
+  <script src="js/api.js?v=4.2"></script>
+  <script src="js/auth.js?v=4.2"></script>
+  <script src="js/presensi.js?v=4.2"></script>
+  <script src="js/admin.js?v=4.2"></script>
+  <script src="js/app.js?v=4.2"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js?v=4.1').catch(function (err) {
+        navigator.serviceWorker.register('sw.js?v=4.2').catch(function (err) {
           console.log('SW register error:', err);
         });
       });
