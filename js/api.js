@@ -546,10 +546,8 @@ var API = {
       var sb = getSupabase();
       if (sb) {
         var today = getTodayFormatted();
-        var rekapQuery = sb.from('absensi').select('*').order('created_at', { ascending: false }).limit(1000);
-        if (filterGuru && filterGuru !== 'ALL') {
-          rekapQuery = rekapQuery.eq('id_user', filterGuru);
-        }
+        // Ambil data rekapitulasi sekolah (hingga 2000 baris) agar tanggal hari efektif sekolah selalu lengkap dan akurat
+        var rekapQuery = sb.from('absensi').select('*').order('created_at', { ascending: false }).limit(2000);
         if (search && search.trim() !== '') {
           rekapQuery = rekapQuery.ilike('nama_guru', '%' + search.trim() + '%');
         }

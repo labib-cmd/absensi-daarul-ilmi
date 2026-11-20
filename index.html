@@ -361,18 +361,22 @@
                 <div id="barPersenTotal" class="bg-gradient-to-r from-emerald-500 to-teal-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
               </div>
 
-              <div class="grid grid-cols-3 gap-1.5 text-center pt-1 text-[10px]">
-                <div class="p-2 rounded-xl bg-white border border-slate-100 shadow-2xs">
-                  <span class="text-slate-400 block text-[9px]">Hari Efektif</span>
+              <div class="grid grid-cols-4 gap-1 text-center pt-1 text-[10px]">
+                <div class="p-1.5 rounded-xl bg-white border border-slate-100 shadow-2xs">
+                  <span class="text-slate-400 block text-[8px] uppercase font-bold">Hari Efektif</span>
                   <span id="txtStatHariKerja" class="font-extrabold text-slate-800 text-xs">0 Hari</span>
                 </div>
-                <div class="p-2 rounded-xl bg-white border border-emerald-100 shadow-2xs">
-                  <span class="text-emerald-600 block text-[9px]">Tepat Waktu</span>
-                  <span id="txtStatTepatWaktu" class="font-extrabold text-emerald-700 text-xs">0 (0%)</span>
+                <div class="p-1.5 rounded-xl bg-white border border-emerald-100 shadow-2xs">
+                  <span class="text-emerald-600 block text-[8px] uppercase font-bold">Hadir</span>
+                  <span id="txtStatHadir" class="font-extrabold text-emerald-700 text-xs">0 (0%)</span>
                 </div>
-                <div class="p-2 rounded-xl bg-white border border-rose-100 shadow-2xs">
-                  <span class="text-rose-600 block text-[9px]">Terlambat</span>
-                  <span id="txtStatTerlambat" class="font-extrabold text-rose-700 text-xs">0 (0%)</span>
+                <div class="p-1.5 rounded-xl bg-white border border-rose-100 shadow-2xs">
+                  <span class="text-rose-600 block text-[8px] uppercase font-bold">Tidak Absen</span>
+                  <span id="txtStatTidakAbsen" class="font-extrabold text-rose-700 text-xs">0 (0%)</span>
+                </div>
+                <div class="p-1.5 rounded-xl bg-white border border-amber-100 shadow-2xs">
+                  <span class="text-amber-600 block text-[8px] uppercase font-bold">Terlambat</span>
+                  <span id="txtStatTerlambat" class="font-extrabold text-amber-700 text-xs">0 (0%)</span>
                 </div>
               </div>
 
@@ -830,15 +834,15 @@
   </div>
 
   <!-- SCRIPTS STANDAR TERPISAH (CLEAN & MODULAR) -->
-  <script src="js/api.js?v=4.2"></script>
-  <script src="js/auth.js?v=4.2"></script>
-  <script src="js/presensi.js?v=4.2"></script>
-  <script src="js/admin.js?v=4.2"></script>
-  <script src="js/app.js?v=4.2"></script>
+  <script src="js/api.js?v=4.3"></script>
+  <script src="js/auth.js?v=4.3"></script>
+  <script src="js/presensi.js?v=4.3"></script>
+  <script src="js/admin.js?v=4.3"></script>
+  <script src="js/app.js?v=4.3"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js?v=4.2').catch(function (err) {
+        navigator.serviceWorker.register('sw.js?v=4.3').catch(function (err) {
           console.log('SW register error:', err);
         });
       });

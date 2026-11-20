@@ -462,17 +462,19 @@ function filterRecordsByRange(list, range) {
   return list;
 }
 
-function calculatePerGuruStats(rekapList, guruList) {
+function calculatePerGuruStats(rekapList, guruList, forcedHariEfektif) {
   rekapList = rekapList || [];
   guruList = guruList || [];
 
-  // Hitung tanggal unik yang ada kegiatan presensi
+  // Hitung tanggal unik sekolah dari data presensi atau gunakan hari efektif sekolah
   var uniqueDatesMap = {};
   rekapList.forEach(function(r) {
     if (r.tanggal) uniqueDatesMap[r.tanggal] = true;
   });
   var uniqueDates = Object.keys(uniqueDatesMap);
-  var totalHariEfektif = Math.max(1, uniqueDates.length);
+  var totalHariEfektif = (typeof forcedHariEfektif === 'number' && forcedHariEfektif > 0)
+    ? forcedHariEfektif
+    : Math.max(1, uniqueDates.length);
 
   var teachersMap = {};
   guruList.forEach(function(g) {
@@ -507,14 +509,21 @@ function calculatePerGuruStats(rekapList, guruList) {
   });
 
   var perGuruStats = Object.values(teachersMap).map(function(t) {
-    var pct = totalHariEfektif > 0 ? ((t.totalHadir / totalHariEfektif) * 100).toFixed(1) : '0';
+    var hadir = t.totalHadir;
+    var tidakHadir = Math.max(0, totalHariEfektif - hadir);
+    var pctHadir = totalHariEfektif > 0 ? ((hadir / totalHariEfektif) * 100).toFixed(1) : '0';
+    var pctTidakHadir = totalHariEfektif > 0 ? ((tidakHadir / totalHariEfektif) * 100).toFixed(1) : '0';
+
     return {
       id_user: t.id_user,
       nama_guru: t.nama_guru,
-      totalHadir: t.totalHadir,
+      totalHadir: hadir,
+      totalTidakHadir: tidakHadir,
+      totalHariEfektif: totalHariEfektif,
       tepatCount: t.tepatCount,
       lambatCount: t.lambatCount,
-      persenHadir: parseFloat(pct)
+      persenHadir: parseFloat(pctHadir),
+      persenTidakHadir: parseFloat(pctTidakHadir)
     };
   });
 
@@ -525,9 +534,11 @@ function calculatePerGuruStats(rekapList, guruList) {
 
   var totalTargetSesi = Math.max(1, (guruList.length || perGuruStats.length) * totalHariEfektif);
   var totalAktualHadir = perGuruStats.reduce(function(acc, x) { return acc + x.totalHadir; }, 0);
+  var totalTidakAbsenSesi = Math.max(0, totalTargetSesi - totalAktualHadir);
   var totalTepat = perGuruStats.reduce(function(acc, x) { return acc + x.tepatCount; }, 0);
   var totalLambat = perGuruStats.reduce(function(acc, x) { return acc + x.lambatCount; }, 0);
   var persenKolektif = ((totalAktualHadir / totalTargetSesi) * 100).toFixed(1);
+  var persenTidakAbsenKolektif = ((totalTidakAbsenSesi / totalTargetSesi) * 100).toFixed(1);
 
   return {
     totalHariEfektif: totalHariEfektif,
@@ -535,9 +546,11 @@ function calculatePerGuruStats(rekapList, guruList) {
     perGuruStats: perGuruStats,
     totalTargetSesi: totalTargetSesi,
     totalAktualHadir: totalAktualHadir,
+    totalTidakAbsenSesi: totalTidakAbsenSesi,
     totalTepat: totalTepat,
     totalLambat: totalLambat,
-    persenKolektif: parseFloat(persenKolektif)
+    persenKolektif: parseFloat(persenKolektif),
+    persenTidakAbsenKolektif: parseFloat(persenTidakAbsenKolektif)
   };
 }
 
@@ -571,9 +584,22 @@ function calculateTriplePeriodStats(allRekapList, guruList) {
     }
   });
 
-  var statsMinggu = calculatePerGuruStats(listMinggu, guruList);
-  var statsBulan = calculatePerGuruStats(listBulan, guruList);
-  var statsTahun = calculatePerGuruStats(listTahun, guruList);
+  // Hitung hari efektif sekolah untuk masing-masing periode
+  var datesMinggu = {};
+  listMinggu.forEach(function(r) { if (r.tanggal) datesMinggu[r.tanggal] = true; });
+  var hariEfektifMinggu = Math.max(1, Object.keys(datesMinggu).length);
+
+  var datesBulan = {};
+  listBulan.forEach(function(r) { if (r.tanggal) datesBulan[r.tanggal] = true; });
+  var hariEfektifBulan = Math.max(1, Object.keys(datesBulan).length);
+
+  var datesTahun = {};
+  listTahun.forEach(function(r) { if (r.tanggal) datesTahun[r.tanggal] = true; });
+  var hariEfektifTahun = Math.max(1, Object.keys(datesTahun).length);
+
+  var statsMinggu = calculatePerGuruStats(listMinggu, guruList, hariEfektifMinggu);
+  var statsBulan = calculatePerGuruStats(listBulan, guruList, hariEfektifBulan);
+  var statsTahun = calculatePerGuruStats(listTahun, guruList, hariEfektifTahun);
 
   var mapMinggu = {};
   statsMinggu.perGuruStats.forEach(function(s) { mapMinggu[s.id_user] = s; });
@@ -586,31 +612,37 @@ function calculateTriplePeriodStats(allRekapList, guruList) {
 
   var baseGuruList = (guruList && guruList.length > 0) ? guruList : statsBulan.perGuruStats;
   var combinedGuruList = baseGuruList.map(function(g) {
-    var sm = mapMinggu[g.id_user] || { totalHadir: 0, persenHadir: 0, tepatCount: 0, lambatCount: 0 };
-    var sb = mapBulan[g.id_user] || { totalHadir: 0, persenHadir: 0, tepatCount: 0, lambatCount: 0 };
-    var st = mapTahun[g.id_user] || { totalHadir: 0, persenHadir: 0, tepatCount: 0, lambatCount: 0 };
+    var sm = mapMinggu[g.id_user] || { totalHadir: 0, totalTidakHadir: hariEfektifMinggu, persenHadir: 0, persenTidakHadir: 100, tepatCount: 0, lambatCount: 0 };
+    var sb = mapBulan[g.id_user] || { totalHadir: 0, totalTidakHadir: hariEfektifBulan, persenHadir: 0, persenTidakHadir: 100, tepatCount: 0, lambatCount: 0 };
+    var st = mapTahun[g.id_user] || { totalHadir: 0, totalTidakHadir: hariEfektifTahun, persenHadir: 0, persenTidakHadir: 100, tepatCount: 0, lambatCount: 0 };
 
     return {
       id_user: g.id_user,
       nama_guru: g.nama_guru || 'Guru',
       minggu: {
         totalHadir: sm.totalHadir,
-        hariEfektif: statsMinggu.totalHariEfektif,
+        totalTidakHadir: sm.totalTidakHadir,
+        hariEfektif: hariEfektifMinggu,
         persenHadir: sm.persenHadir,
+        persenTidakHadir: sm.persenTidakHadir,
         tepatCount: sm.tepatCount,
         lambatCount: sm.lambatCount
       },
       bulan: {
         totalHadir: sb.totalHadir,
-        hariEfektif: statsBulan.totalHariEfektif,
+        totalTidakHadir: sb.totalTidakHadir,
+        hariEfektif: hariEfektifBulan,
         persenHadir: sb.persenHadir,
+        persenTidakHadir: sb.persenTidakHadir,
         tepatCount: sb.tepatCount,
         lambatCount: sb.lambatCount
       },
       tahun: {
         totalHadir: st.totalHadir,
-        hariEfektif: statsTahun.totalHariEfektif,
+        totalTidakHadir: st.totalTidakHadir,
+        hariEfektif: hariEfektifTahun,
         persenHadir: st.persenHadir,
+        persenTidakHadir: st.persenTidakHadir,
         tepatCount: st.tepatCount,
         lambatCount: st.lambatCount
       }
@@ -671,15 +703,18 @@ function renderTabelPersenMultiPeriode(tripleStats) {
       var tdNama = '<td class="p-1.5 font-bold text-slate-700 leading-tight">' + s.nama_guru + '</td>';
       var tdM = '<td class="p-1.5 text-center whitespace-nowrap">' +
         '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-black border ' + getBadge(s.minggu.persenHadir) + '">' + s.minggu.persenHadir + '%</span>' +
-        '<span class="block text-[8px] text-slate-400 mt-0.5">' + s.minggu.totalHadir + '/' + s.minggu.hariEfektif + ' Hari</span>' +
+        '<span class="block text-[8px] text-slate-500 mt-0.5">' + s.minggu.totalHadir + '/' + s.minggu.hariEfektif + ' Hadir</span>' +
+        (s.minggu.totalTidakHadir > 0 ? '<span class="block text-[8px] text-rose-600 font-semibold">' + s.minggu.totalTidakHadir + ' Tdk Absen</span>' : '') +
         '</td>';
       var tdB = '<td class="p-1.5 text-center whitespace-nowrap">' +
         '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-black border ' + getBadge(s.bulan.persenHadir) + '">' + s.bulan.persenHadir + '%</span>' +
-        '<span class="block text-[8px] text-slate-400 mt-0.5">' + s.bulan.totalHadir + '/' + s.bulan.hariEfektif + ' Hari</span>' +
+        '<span class="block text-[8px] text-slate-500 mt-0.5">' + s.bulan.totalHadir + '/' + s.bulan.hariEfektif + ' Hadir</span>' +
+        (s.bulan.totalTidakHadir > 0 ? '<span class="block text-[8px] text-rose-600 font-semibold">' + s.bulan.totalTidakHadir + ' Tdk Absen</span>' : '') +
         '</td>';
       var tdT = '<td class="p-1.5 text-center whitespace-nowrap">' +
         '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-black border ' + getBadge(s.tahun.persenHadir) + '">' + s.tahun.persenHadir + '%</span>' +
-        '<span class="block text-[8px] text-slate-400 mt-0.5">' + s.tahun.totalHadir + '/' + s.tahun.hariEfektif + ' Hari</span>' +
+        '<span class="block text-[8px] text-slate-500 mt-0.5">' + s.tahun.totalHadir + '/' + s.tahun.hariEfektif + ' Hadir</span>' +
+        (s.tahun.totalTidakHadir > 0 ? '<span class="block text-[8px] text-rose-600 font-semibold">' + s.tahun.totalTidakHadir + ' Tdk Absen</span>' : '') +
         '</td>';
       var tdAksi = '<td class="p-1.5 text-center"><i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400 inline"></i></td>';
 
@@ -693,15 +728,18 @@ function renderTabelPersenMultiPeriode(tripleStats) {
       '<td colspan="2" class="p-2 text-slate-800 text-[10px] uppercase font-black tracking-wide">TOTAL SELURUH GURU</td>' +
       '<td class="p-2 text-center whitespace-nowrap text-emerald-800">' +
         '<span class="text-xs font-black">' + tripleStats.statsMinggu.persenKolektif + '%</span>' +
-        '<span class="block text-[8px] text-slate-500">' + tripleStats.statsMinggu.totalAktualHadir + '/' + tripleStats.statsMinggu.totalTargetSesi + ' Sesi</span>' +
+        '<span class="block text-[8px] text-slate-500">' + tripleStats.statsMinggu.totalAktualHadir + '/' + tripleStats.statsMinggu.totalTargetSesi + ' Hadir</span>' +
+        '<span class="block text-[8px] text-rose-600 font-semibold">' + tripleStats.statsMinggu.totalTidakAbsenSesi + ' Sesi Tdk Absen</span>' +
       '</td>' +
       '<td class="p-2 text-center whitespace-nowrap text-teal-800">' +
         '<span class="text-xs font-black">' + tripleStats.statsBulan.persenKolektif + '%</span>' +
-        '<span class="block text-[8px] text-slate-500">' + tripleStats.statsBulan.totalAktualHadir + '/' + tripleStats.statsBulan.totalTargetSesi + ' Sesi</span>' +
+        '<span class="block text-[8px] text-slate-500">' + tripleStats.statsBulan.totalAktualHadir + '/' + tripleStats.statsBulan.totalTargetSesi + ' Hadir</span>' +
+        '<span class="block text-[8px] text-rose-600 font-semibold">' + tripleStats.statsBulan.totalTidakAbsenSesi + ' Sesi Tdk Absen</span>' +
       '</td>' +
       '<td class="p-2 text-center whitespace-nowrap text-indigo-800">' +
         '<span class="text-xs font-black">' + tripleStats.statsTahun.persenKolektif + '%</span>' +
-        '<span class="block text-[8px] text-slate-500">' + tripleStats.statsTahun.totalAktualHadir + '/' + tripleStats.statsTahun.totalTargetSesi + ' Sesi</span>' +
+        '<span class="block text-[8px] text-slate-500">' + tripleStats.statsTahun.totalAktualHadir + '/' + tripleStats.statsTahun.totalTargetSesi + ' Hadir</span>' +
+        '<span class="block text-[8px] text-rose-600 font-semibold">' + tripleStats.statsTahun.totalTidakAbsenSesi + ' Sesi Tdk Absen</span>' +
       '</td>' +
       '<td></td>' +
     '</tr>';
@@ -759,70 +797,79 @@ function renderRekapStatsAndTables(rekapList, guruList) {
   var selRange = document.getElementById('filterRange');
   var currentRange = (selRange && selRange.value) ? selRange.value : (stateAdmin.range || 'bulanan');
 
-  // Hitung komparasi 3 periode (Minggu Ini, Bulan Ini, Tahun Ini) dari seluruh data
+  // 1. Hitung komparasi 3 periode (Minggu Ini, Bulan Ini, Tahun Ini) dari seluruh data sekolah
   var tripleStats = calculateTriplePeriodStats(rekapList, guruList);
 
-  // Saring data untuk log presensi sesuai filter rentang waktu & guru terpilih
-  var filteredForLog = filterRecordsByRange(rekapList, currentRange);
-  if (selectedGuruId !== 'ALL') {
-    filteredForLog = filteredForLog.filter(function(r) { return r.id_user === selectedGuruId; });
-  }
+  // 2. Hitung hari efektif sekolah pada rentang yang aktif (misal 5 hari untuk pekanan/bulanan)
+  var filteredSchoolRange = filterRecordsByRange(rekapList, currentRange);
+  var schoolDatesMap = {};
+  filteredSchoolRange.forEach(function(r) { if (r.tanggal) schoolDatesMap[r.tanggal] = true; });
+  var totalHariEfektifSekolah = Math.max(1, Object.keys(schoolDatesMap).length);
 
-  // Statistik untuk rentang yang sedang aktif dipilih di dropdown
-  var statObjActive = calculatePerGuruStats(filteredForLog, guruList);
-  var totalHariEfektif = statObjActive.totalHariEfektif;
+  // 3. Hitung statistik seluruh guru berdasarkan hari efektif sekolah tersebut
+  var statObjActive = calculatePerGuruStats(filteredSchoolRange, guruList, totalHariEfektifSekolah);
   var perGuruStats = statObjActive.perGuruStats;
+
+  // 4. Saring data untuk tabel log riwayat presensi
+  var filteredForLog = filteredSchoolRange;
+  if (selectedGuruId !== 'ALL') {
+    filteredForLog = filteredSchoolRange.filter(function(r) { return r.id_user === selectedGuruId; });
+  }
 
   // Update Card Ringkasan Utama
   var titleEl = document.getElementById('titlePersenRekap');
   var badgeEl = document.getElementById('badgePersenTotal');
   var barEl = document.getElementById('barPersenTotal');
   var txtHariEl = document.getElementById('txtStatHariKerja');
-  var txtTepatEl = document.getElementById('txtStatTepatWaktu');
+  var txtHadirEl = document.getElementById('txtStatHadir');
+  var txtTidakAbsenEl = document.getElementById('txtStatTidakAbsen');
   var txtLambatEl = document.getElementById('txtStatTerlambat');
   var badgeCount = document.getElementById('rekapCountBadge');
 
   if (badgeCount) badgeCount.innerText = filteredForLog.length + ' data presensi';
-  if (txtHariEl) txtHariEl.innerText = totalHariEfektif + ' Hari';
+  if (txtHariEl) txtHariEl.innerText = totalHariEfektifSekolah + ' Hari';
 
   var labelPeriode = currentRange === 'pekanan' ? ' (Pekanan)' : (currentRange === 'bulanan' ? ' (Bulanan)' : (currentRange === 'tahunan' ? ' (Tahunan)' : ''));
 
   if (selectedGuruId !== 'ALL') {
     var selectedStat = perGuruStats.find(function(s) { return s.id_user === selectedGuruId; });
     var nameGuruSelected = selectedStat ? selectedStat.nama_guru : 'Guru';
-    var pVal = selectedStat ? selectedStat.persenHadir : 0;
-    var tVal = selectedStat ? selectedStat.tepatCount : 0;
-    var lVal = selectedStat ? selectedStat.lambatCount : 0;
     var hVal = selectedStat ? selectedStat.totalHadir : 0;
+    var thVal = selectedStat ? selectedStat.totalTidakHadir : totalHariEfektifSekolah;
+    var pVal = selectedStat ? selectedStat.persenHadir : 0;
+    var pThVal = selectedStat ? selectedStat.persenTidakHadir : 100;
+    var lVal = selectedStat ? selectedStat.lambatCount : 0;
 
     if (titleEl) titleEl.innerText = 'Persentase: ' + nameGuruSelected + labelPeriode;
     if (badgeEl) badgeEl.innerText = pVal + '%';
     if (barEl) barEl.style.width = Math.min(100, pVal) + '%';
-    var tepatPct = hVal > 0 ? ((tVal / hVal) * 100).toFixed(0) : '0';
+    
+    if (txtHadirEl) txtHadirEl.innerText = hVal + ' (' + pVal + '%)';
+    if (txtTidakAbsenEl) txtTidakAbsenEl.innerText = thVal + ' (' + pThVal + '%)';
     var lambatPct = hVal > 0 ? ((lVal / hVal) * 100).toFixed(0) : '0';
-    if (txtTepatEl) txtTepatEl.innerText = tVal + ' (' + tepatPct + '%)';
     if (txtLambatEl) txtLambatEl.innerText = lVal + ' (' + lambatPct + '%)';
 
-    // Update 3 Pills untuk Guru Tersebut
+    // Update 3 Pills untuk Guru Tersebut (Memuat Hadir dan Tidak Absen)
     var sgTriple = tripleStats.combinedGuruList.find(function(x) { return x.id_user === selectedGuruId; });
     if (sgTriple) {
-      updatePeriodPill('txtPillPersenMinggu', 'txtPillRasioMinggu', sgTriple.minggu.persenHadir, sgTriple.minggu.totalHadir + '/' + sgTriple.minggu.hariEfektif + ' Hari');
-      updatePeriodPill('txtPillPersenBulan', 'txtPillRasioBulan', sgTriple.bulan.persenHadir, sgTriple.bulan.totalHadir + '/' + sgTriple.bulan.hariEfektif + ' Hari');
-      updatePeriodPill('txtPillPersenTahun', 'txtPillRasioTahun', sgTriple.tahun.persenHadir, sgTriple.tahun.totalHadir + '/' + sgTriple.tahun.hariEfektif + ' Hari');
+      updatePeriodPill('txtPillPersenMinggu', 'txtPillRasioMinggu', sgTriple.minggu.persenHadir, sgTriple.minggu.totalHadir + '/' + sgTriple.minggu.hariEfektif + ' Hadir • ' + sgTriple.minggu.totalTidakHadir + ' Tdk Absen');
+      updatePeriodPill('txtPillPersenBulan', 'txtPillRasioBulan', sgTriple.bulan.persenHadir, sgTriple.bulan.totalHadir + '/' + sgTriple.bulan.hariEfektif + ' Hadir • ' + sgTriple.bulan.totalTidakHadir + ' Tdk Absen');
+      updatePeriodPill('txtPillPersenTahun', 'txtPillRasioTahun', sgTriple.tahun.persenHadir, sgTriple.tahun.totalHadir + '/' + sgTriple.tahun.hariEfektif + ' Hadir • ' + sgTriple.tahun.totalTidakHadir + ' Tdk Absen');
     }
   } else {
     if (titleEl) titleEl.innerText = 'Persentase Seluruh Guru' + labelPeriode;
     if (badgeEl) badgeEl.innerText = statObjActive.persenKolektif + '%';
     if (barEl) barEl.style.width = Math.min(100, statObjActive.persenKolektif) + '%';
-    var tepatPctAll = statObjActive.totalAktualHadir > 0 ? ((statObjActive.totalTepat / statObjActive.totalAktualHadir) * 100).toFixed(0) : '0';
+    
+    if (txtHadirEl) txtHadirEl.innerText = statObjActive.totalAktualHadir + ' (' + statObjActive.persenKolektif + '%)';
+    if (txtTidakAbsenEl) txtTidakAbsenEl.innerText = statObjActive.totalTidakAbsenSesi + ' (' + statObjActive.persenTidakAbsenKolektif + '%)';
     var lambatPctAll = statObjActive.totalAktualHadir > 0 ? ((statObjActive.totalLambat / statObjActive.totalAktualHadir) * 100).toFixed(0) : '0';
-    if (txtTepatEl) txtTepatEl.innerText = statObjActive.totalTepat + ' (' + tepatPctAll + '%)';
     if (txtLambatEl) txtLambatEl.innerText = statObjActive.totalLambat + ' (' + lambatPctAll + '%)';
 
     // Update 3 Pills untuk Seluruh Guru Kolektif
-    updatePeriodPill('txtPillPersenMinggu', 'txtPillRasioMinggu', tripleStats.statsMinggu.persenKolektif, tripleStats.statsMinggu.totalAktualHadir + '/' + tripleStats.statsMinggu.totalTargetSesi + ' Sesi');
-    updatePeriodPill('txtPillPersenBulan', 'txtPillRasioBulan', tripleStats.statsBulan.persenKolektif, tripleStats.statsBulan.totalAktualHadir + '/' + tripleStats.statsBulan.totalTargetSesi + ' Sesi');
-    updatePeriodPill('txtPillPersenTahun', 'txtPillRasioTahun', tripleStats.statsTahun.persenKolektif, tripleStats.statsTahun.totalAktualHadir + '/' + tripleStats.statsTahun.totalTargetSesi + ' Sesi');
+    updatePeriodPill('txtPillPersenMinggu', 'txtPillRasioMinggu', tripleStats.statsMinggu.persenKolektif, tripleStats.statsMinggu.totalAktualHadir + '/' + tripleStats.statsMinggu.totalTargetSesi + ' Sesi • ' + tripleStats.statsMinggu.totalTidakAbsenSesi + ' Tdk Absen');
+    updatePeriodPill('txtPillPersenBulan', 'txtPillRasioBulan', tripleStats.statsBulan.persenKolektif, tripleStats.statsBulan.totalAktualHadir + '/' + tripleStats.statsBulan.totalTargetSesi + ' Sesi • ' + tripleStats.statsBulan.totalTidakAbsenSesi + ' Tdk Absen');
+    updatePeriodPill('txtPillPersenTahun', 'txtPillRasioTahun', tripleStats.statsTahun.persenKolektif, tripleStats.statsTahun.totalAktualHadir + '/' + tripleStats.statsTahun.totalTargetSesi + ' Sesi • ' + tripleStats.statsTahun.totalTidakAbsenSesi + ' Tdk Absen');
   }
 
   // Render Tabel Persentase Per Guru (Kolom: Minggu Ini, Bulan Ini, Tahun Ini)
@@ -1431,10 +1478,13 @@ function downloadRekapCsv() {
           'Nama Guru / Karyawan': t.nama_guru,
           'Kehadiran Minggu Ini (%)': t.minggu.persenHadir + '%',
           'Rasio Minggu Ini': t.minggu.totalHadir + ' / ' + t.minggu.hariEfektif + ' Hari',
+          'Tidak Absen (Minggu)': t.minggu.totalTidakHadir + ' Hari',
           'Kehadiran Bulan Ini (%)': t.bulan.persenHadir + '%',
           'Rasio Bulan Ini': t.bulan.totalHadir + ' / ' + t.bulan.hariEfektif + ' Hari',
+          'Tidak Absen (Bulan)': t.bulan.totalTidakHadir + ' Hari',
           'Kehadiran Tahun Ini (%)': t.tahun.persenHadir + '%',
           'Rasio Tahun Ini': t.tahun.totalHadir + ' / ' + t.tahun.hariEfektif + ' Hari',
+          'Tidak Absen (Tahun)': t.tahun.totalTidakHadir + ' Hari',
           'Tepat Waktu (Bulan)': t.bulan.tepatCount,
           'Terlambat (Bulan)': t.bulan.lambatCount
         };
@@ -1446,10 +1496,13 @@ function downloadRekapCsv() {
         'Nama Guru / Karyawan': 'TOTAL KOLEKTIF SELURUH GURU',
         'Kehadiran Minggu Ini (%)': tripleStats.statsMinggu.persenKolektif + '%',
         'Rasio Minggu Ini': tripleStats.statsMinggu.totalAktualHadir + ' / ' + tripleStats.statsMinggu.totalTargetSesi + ' Sesi',
+        'Tidak Absen (Minggu)': tripleStats.statsMinggu.totalTidakAbsenSesi + ' Sesi',
         'Kehadiran Bulan Ini (%)': tripleStats.statsBulan.persenKolektif + '%',
         'Rasio Bulan Ini': tripleStats.statsBulan.totalAktualHadir + ' / ' + tripleStats.statsBulan.totalTargetSesi + ' Sesi',
+        'Tidak Absen (Bulan)': tripleStats.statsBulan.totalTidakAbsenSesi + ' Sesi',
         'Kehadiran Tahun Ini (%)': tripleStats.statsTahun.persenKolektif + '%',
         'Rasio Tahun Ini': tripleStats.statsTahun.totalAktualHadir + ' / ' + tripleStats.statsTahun.totalTargetSesi + ' Sesi',
+        'Tidak Absen (Tahun)': tripleStats.statsTahun.totalTidakAbsenSesi + ' Sesi',
         'Tepat Waktu (Bulan)': tripleStats.statsBulan.totalTepat,
         'Terlambat (Bulan)': tripleStats.statsBulan.totalLambat
       });
@@ -1460,10 +1513,13 @@ function downloadRekapCsv() {
         { wch: 32 },  // Nama Guru
         { wch: 22 },  // % Minggu
         { wch: 18 },  // Rasio Minggu
+        { wch: 18 },  // Tdk Absen Minggu
         { wch: 22 },  // % Bulan
         { wch: 18 },  // Rasio Bulan
+        { wch: 18 },  // Tdk Absen Bulan
         { wch: 22 },  // % Tahun
         { wch: 18 },  // Rasio Tahun
+        { wch: 18 },  // Tdk Absen Tahun
         { wch: 18 },  // Tepat Waktu
         { wch: 18 }   // Terlambat
       ];
