@@ -1311,21 +1311,21 @@ function downloadRekapPdf() {
       }
     }
 
-    var ringkasanBoxHtml = '<div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;">' +
-      '<div style="font-size: 11px; font-weight: bold; color: #166534; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Komparasi Persentase Kehadiran Berdasarkan Periode</div>' +
-      '<table style="width: 100%; border: none; margin: 0; font-size: 11px;">' +
+    var ringkasanBoxHtml = '<div class="box-komparasi" style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; page-break-inside: avoid;">' +
+      '<div style="font-size: 10px; font-weight: bold; color: #166534; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Komparasi Persentase Kehadiran Berdasarkan Periode</div>' +
+      '<table style="width: 100%; border: none; margin: 0; font-size: 10px;">' +
         '<tr style="background: transparent;">' +
-          '<td style="border: none; padding: 4px; vertical-align: top; width: 33.3%;">' +
-            '<div style="font-size: 10px; color: #166534; font-weight: bold; text-transform: uppercase;">1. Minggu Ini (Pekanan)</div>' +
-            '<div style="font-size: 16px; font-weight: bold; color: #15803d;">' + pMinggu + '% <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + rMinggu + ')</span></div>' +
+          '<td style="border: none; padding: 3px; vertical-align: top; width: 33.3%;">' +
+            '<div style="font-size: 9px; color: #166534; font-weight: bold; text-transform: uppercase;">1. Minggu Ini (Pekanan)</div>' +
+            '<div style="font-size: 15px; font-weight: bold; color: #15803d;">' + pMinggu + '% <span style="font-size: 10px; font-weight: normal; color: #64748b;">(' + rMinggu + ')</span></div>' +
           '</td>' +
-          '<td style="border: none; padding: 4px; vertical-align: top; width: 33.3%;">' +
-            '<div style="font-size: 10px; color: #0f766e; font-weight: bold; text-transform: uppercase;">2. Bulan Ini (Bulanan)</div>' +
-            '<div style="font-size: 16px; font-weight: bold; color: #0f766e;">' + pBulan + '% <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + rBulan + ')</span></div>' +
+          '<td style="border: none; padding: 3px; vertical-align: top; width: 33.3%;">' +
+            '<div style="font-size: 9px; color: #0f766e; font-weight: bold; text-transform: uppercase;">2. Bulan Ini (Bulanan)</div>' +
+            '<div style="font-size: 15px; font-weight: bold; color: #0f766e;">' + pBulan + '% <span style="font-size: 10px; font-weight: normal; color: #64748b;">(' + rBulan + ')</span></div>' +
           '</td>' +
-          '<td style="border: none; padding: 4px; vertical-align: top; width: 33.3%;">' +
-            '<div style="font-size: 10px; color: #4338ca; font-weight: bold; text-transform: uppercase;">3. Tahun Ini (Tahunan)</div>' +
-            '<div style="font-size: 16px; font-weight: bold; color: #4338ca;">' + pTahun + '% <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + rTahun + ')</span></div>' +
+          '<td style="border: none; padding: 3px; vertical-align: top; width: 33.3%;">' +
+            '<div style="font-size: 9px; color: #4338ca; font-weight: bold; text-transform: uppercase;">3. Tahun Ini (Tahunan)</div>' +
+            '<div style="font-size: 15px; font-weight: bold; color: #4338ca;">' + pTahun + '% <span style="font-size: 10px; font-weight: normal; color: #64748b;">(' + rTahun + ')</span></div>' +
           '</td>' +
         '</tr>' +
       '</table>' +
@@ -1339,14 +1339,14 @@ function downloadRekapPdf() {
         function getBadgeStyle(pct) {
           var bg = pct >= 85 ? '#dcfce7' : (pct >= 60 ? '#fef3c7' : '#fee2e2');
           var col = pct >= 85 ? '#15803d' : (pct >= 60 ? '#b45309' : '#dc2626');
-          return 'display: inline-block; padding: 2px 7px; border-radius: 9999px; font-weight: bold; font-size: 10px; background: ' + bg + '; color: ' + col + ';';
+          return 'display: inline-block; padding: 2px 7px; border-radius: 9999px; font-weight: bold; font-size: 9px; background: ' + bg + '; color: ' + col + ';';
         }
 
         function formatGuruCol(p) {
           var detail = p.totalHadir + '/' + p.hariEfektif;
           if (p.totalIzin > 0) detail += ', ' + p.totalIzin + ' Izin';
           if (p.totalTidakHadir > 0) detail += ', ' + p.totalTidakHadir + ' Alpa';
-          return '<span style="' + getBadgeStyle(p.persenHadir) + '">' + p.persenHadir + '%</span> <span style="color: #64748b; font-size: 10px;">(' + detail + ')</span>';
+          return '<span style="' + getBadgeStyle(p.persenHadir) + '">' + p.persenHadir + '%</span> <span style="color: #64748b; font-size: 9px;">(' + detail + ')</span>';
         }
 
         rowsGuruPersenHtml += '<tr>' +
@@ -1358,16 +1358,16 @@ function downloadRekapPdf() {
         '</tr>';
       });
 
-      tabelPersenPerGuruHtml = '<div style="margin-top: 15px; margin-bottom: 25px;">' +
-        '<div style="font-size: 12px; font-weight: bold; color: #065f46; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">1. Ringkasan Persentase Kehadiran Per Guru (Mingguan, Bulanan, Tahunan)</div>' +
+      tabelPersenPerGuruHtml = '<div style="margin-top: 10px; margin-bottom: 18px; page-break-inside: auto;">' +
+        '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; page-break-inside: avoid; page-break-after: avoid;">1. Ringkasan Persentase Kehadiran Per Guru (Mingguan, Bulanan, Tahunan)</div>' +
         '<table>' +
           '<thead>' +
             '<tr>' +
-              '<th style="width: 35px;">No</th>' +
+              '<th style="width: 35px; text-align: center;">No</th>' +
               '<th>Nama Guru / Karyawan</th>' +
-              '<th style="width: 140px;">Minggu Ini</th>' +
-              '<th style="width: 140px;">Bulan Ini</th>' +
-              '<th style="width: 140px;">Tahun Ini</th>' +
+              '<th style="width: 140px; text-align: center;">Minggu Ini</th>' +
+              '<th style="width: 140px; text-align: center;">Bulan Ini</th>' +
+              '<th style="width: 140px; text-align: center;">Tahun Ini</th>' +
             '</tr>' +
           '</thead>' +
           '<tbody>' + rowsGuruPersenHtml + '</tbody>' +
@@ -1401,15 +1401,15 @@ function downloadRekapPdf() {
       '<div class="tgl-cetak">Waktu Cetak: ' + tglCetak + '</div>' +
       ringkasanBoxHtml +
       tabelPersenPerGuruHtml +
-      '<div style="font-size: 12px; font-weight: bold; color: #065f46; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">' + (isFilteredSingleGuru ? 'Detail Riwayat Presensi' : '2. Detail Riwayat Presensi Lengkap') + '</div>' +
+      '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; page-break-inside: avoid; page-break-after: avoid;">' + (isFilteredSingleGuru ? 'Detail Riwayat Presensi' : '2. Detail Riwayat Presensi Lengkap') + '</div>' +
       '<table>' +
         '<thead>' +
           '<tr>' +
-            '<th style="width: 35px;">No</th>' +
+            '<th style="width: 35px; text-align: center;">No</th>' +
             '<th>Nama Guru / Karyawan</th>' +
-            '<th style="width: 85px;">Tanggal</th>' +
-            '<th style="width: 140px;">Presensi Datang</th>' +
-            '<th style="width: 140px;">Presensi Pulang</th>' +
+            '<th style="width: 80px; text-align: center;">Tanggal</th>' +
+            '<th style="width: 140px; text-align: center;">Presensi Datang</th>' +
+            '<th style="width: 140px; text-align: center;">Presensi Pulang</th>' +
             '<th>Keterangan / Alasan</th>' +
           '</tr>' +
         '</thead>' +
@@ -1417,16 +1417,16 @@ function downloadRekapPdf() {
       '</table>' +
       '<div class="ttd-container">' +
         '<div class="ttd-box">' +
-          '<p>Mengetahui,</p>' +
-          '<p><strong>Kepala Sekolah</strong></p>' +
+          '<p style="margin: 0;">Mengetahui,</p>' +
+          '<p style="margin: 3px 0 0 0;"><strong>Kepala Sekolah</strong></p>' +
           '<div class="ttd-space"></div>' +
-          '<p><strong>( ........................................ )</strong></p>' +
+          '<p style="margin: 0;"><strong>( ........................................ )</strong></p>' +
         '</div>' +
         '<div class="ttd-box">' +
-          '<p>Depok, ' + (tglCetak.indexOf(',') !== -1 ? tglCetak.split(',')[1].trim() : tglCetak) + '</p>' +
-          '<p><strong>Bagian Tata Usaha</strong></p>' +
+          '<p style="margin: 0;">Depok, ' + (tglCetak.indexOf(',') !== -1 ? tglCetak.split(',')[1].trim() : tglCetak) + '</p>' +
+          '<p style="margin: 3px 0 0 0;"><strong>Bagian Tata Usaha</strong></p>' +
           '<div class="ttd-space"></div>' +
-          '<p><strong>( ........................................ )</strong></p>' +
+          '<p style="margin: 0;"><strong>( ........................................ )</strong></p>' +
         '</div>' +
       '</div>';
 
@@ -1434,21 +1434,21 @@ function downloadRekapPdf() {
       '<html lang="id"><head><meta charset="UTF-8"><title>' + namaFileDownload + '</title>' +
       '<style>' +
       'body { font-family: "Segoe UI", Arial, sans-serif; padding: 25px; color: #1e293b; line-height: 1.4; }' +
-      '.kop { border-bottom: 3px double #065f46; padding-bottom: 12px; margin-bottom: 18px; text-align: center; }' +
+      '.kop { border-bottom: 3px double #065f46; padding-bottom: 10px; margin-bottom: 14px; text-align: center; }' +
       '.kop h2 { margin: 0; font-size: 20px; color: #065f46; letter-spacing: 0.5px; }' +
       '.kop h3 { margin: 4px 0 0 0; font-size: 13px; font-weight: 600; color: #334155; }' +
       '.kop p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; }' +
-      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px 0 2px 0; letter-spacing: 0.8px; color: #0f172a; }' +
+      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 12px 0 2px 0; letter-spacing: 0.8px; color: #0f172a; }' +
       '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 4px; }' +
-      '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 16px; }' +
-      'table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }' +
-      'th, td { border: 1px solid #cbd5e1; padding: 7px 9px; }' +
-      'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 10px; font-weight: bold; }' +
+      '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 14px; }' +
+      'table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 20px; }' +
+      'th, td { border: 1px solid #cbd5e1; padding: 6px 8px; }' +
+      'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 9px; font-weight: bold; }' +
       'tr:nth-child(even) { background-color: #f8fafc; }' +
-      '.ttd-container { display: flex; justify-content: space-between; margin-top: 35px; font-size: 12px; page-break-inside: avoid; }' +
+      '.ttd-container { display: flex; justify-content: space-between; margin-top: 30px; font-size: 11px; page-break-inside: avoid; }' +
       '.ttd-box { width: 220px; text-align: center; }' +
-      '.ttd-space { height: 65px; }' +
-      '@media print { @page { size: A4 landscape; margin: 12mm; } body { padding: 0; } }' +
+      '.ttd-space { height: 55px; }' +
+      '@media print { @page { size: A4 landscape; margin: 10mm; } body { padding: 0; } }' +
       '</style></head><body>' +
       bodyContentHtml +
       '<script>window.onload = function() { window.print(); };<\/script>' +
@@ -1458,31 +1458,41 @@ function downloadRekapPdf() {
     showNotif('Mengunduh PDF', 'Sedang menyiapkan berkas PDF (' + namaFileDownload + '.pdf)...', true);
 
     if (window.html2pdf) {
-      var fullHtmlToRender = '<div style="font-family: \'Segoe UI\', Arial, sans-serif; color: #1e293b; background: #ffffff; padding: 20px;">' +
+      var fullHtmlToRender = '<div style="width: 1060px; min-width: 1060px; max-width: 1060px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; color: #1e293b; background: #ffffff; padding: 10px 14px;">' +
         '<style>' +
-        '.kop { border-bottom: 3px double #065f46; padding-bottom: 12px; margin-bottom: 18px; text-align: center; }' +
-        '.kop h2 { margin: 0; font-size: 20px; color: #065f46; letter-spacing: 0.5px; }' +
-        '.kop h3 { margin: 4px 0 0 0; font-size: 13px; font-weight: 600; color: #334155; }' +
-        '.kop p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; }' +
-        '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px 0 2px 0; color: #0f172a; }' +
-        '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 4px; }' +
-        '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 16px; }' +
-        'table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 20px; }' +
-        'th, td { border: 1px solid #cbd5e1; padding: 6px 8px; }' +
+        '* { box-sizing: border-box; }' +
+        '.kop { border-bottom: 3px double #065f46; padding-bottom: 8px; margin-bottom: 12px; text-align: center; page-break-inside: avoid; page-break-after: avoid; }' +
+        '.kop h2 { margin: 0; font-size: 18px; color: #065f46; letter-spacing: 0.5px; }' +
+        '.kop h3 { margin: 3px 0 0 0; font-size: 12px; font-weight: 600; color: #334155; }' +
+        '.kop p { margin: 2px 0 0 0; font-size: 10px; color: #64748b; }' +
+        '.judul-laporan { text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 8px 0 2px 0; color: #0f172a; page-break-inside: avoid; page-break-after: avoid; }' +
+        '.sub-judul { text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 3px; page-break-inside: avoid; page-break-after: avoid; }' +
+        '.tgl-cetak { text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px; page-break-inside: avoid; page-break-after: avoid; }' +
+        '.box-komparasi { background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; page-break-inside: avoid; }' +
+        'table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 16px; page-break-inside: auto; }' +
+        'tr { page-break-inside: avoid; page-break-after: auto; }' +
+        'th, td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: middle; }' +
         'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 9px; font-weight: bold; }' +
         'tr:nth-child(even) { background-color: #f8fafc; }' +
-        '.ttd-container { display: flex; justify-content: space-between; margin-top: 35px; font-size: 11px; page-break-inside: avoid; }' +
+        '.ttd-container { display: flex; justify-content: space-between; margin-top: 25px; font-size: 11px; page-break-inside: avoid; }' +
         '.ttd-box { width: 220px; text-align: center; }' +
-        '.ttd-space { height: 55px; }' +
+        '.ttd-space { height: 45px; }' +
         '</style>' + bodyContentHtml + '</div>';
 
       var opt = {
         margin: [8, 8, 8, 8],
         filename: namaFileDownload + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 1.5, useCORS: true, logging: false },
+        html2canvas: {
+          scale: 1.5,
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 1080
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.ttd-container', '.box-komparasi', '.kop'] }
       };
 
       html2pdf().set(opt).from(fullHtmlToRender).save().then(function() {
