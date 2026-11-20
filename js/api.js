@@ -556,12 +556,14 @@ var API = {
           sb.from('users').select('*').eq('role', 'Guru'),
           sb.from('absensi').select('*').eq('tanggal', today),
           sb.from('settings').select('*'),
-          rekapQuery
+          rekapQuery,
+          sb.from('perizinan').select('*').eq('status', 'APPROVED')
         ]).then(function(results) {
           var guruUsers = results[0].data || [];
           var todayAbsensi = results[1].data || [];
           var settingsData = results[2].data || [];
           var rekapData = results[3].data || [];
+          var izinData = results[4].data || [];
 
           var settingsObj = {};
           settingsData.forEach(function(s) { settingsObj[s.key] = s.value; });
@@ -607,6 +609,7 @@ var API = {
             settings: settingsObj,
             realtimeMonitoring: realtime,
             rekapitulasi: rekapWithHari,
+            izinList: izinData,
             pagination: { currentPage: page || 1, totalPages: 1 }
           });
         }).catch(function(err) {
