@@ -108,10 +108,10 @@ function hitungJarakMeter(lat1, lon1, lat2, lon2) {
 var API = {
   // 0. Ambil Pengaturan Sekolah (Koordinat, Radius, Jam Kerja)
   getSettings: function() {
-    var defaults = {
-      LAT_SEKOLAH: '-6.3982',
-      LONG_SEKOLAH: '106.8271',
-      MAX_RADIUS_METER: '300',
+    var defaults = JSON.parse(localStorage.getItem('daarulilmi_cached_settings') || 'null') || {
+      LAT_SEKOLAH: '-6.41022',
+      LONG_SEKOLAH: '106.82729',
+      MAX_RADIUS_METER: '350',
       JAM_MASUK_STD: '07:00',
       JAM_PULANG_STD: '16:00'
     };
@@ -123,6 +123,9 @@ var API = {
             res.data.forEach(function(s) {
               if (s.key) defaults[s.key] = s.value;
             });
+            try {
+              localStorage.setItem('daarulilmi_cached_settings', JSON.stringify(defaults));
+            } catch (e) {}
           }
           resolve(defaults);
         }).catch(function() {
@@ -313,9 +316,9 @@ var API = {
       var sb = getSupabase();
       if (sb) {
         API.getSettings().then(function(settings) {
-          var latSekolah = parseFloat(settings.LAT_SEKOLAH || '-6.3982');
-          var longSekolah = parseFloat(settings.LONG_SEKOLAH || '106.8271');
-          var maxRadius = parseFloat(settings.MAX_RADIUS_METER || '300');
+          var latSekolah = parseFloat(settings.LAT_SEKOLAH || '-6.41022');
+          var longSekolah = parseFloat(settings.LONG_SEKOLAH || '106.82729');
+          var maxRadius = parseFloat(settings.MAX_RADIUS_METER || '350');
 
           var userLat = parseFloat(payload.lat);
           var userLong = parseFloat(payload.long);
@@ -326,7 +329,8 @@ var API = {
           }
 
           var jarakMeter = hitungJarakMeter(latSekolah, longSekolah, userLat, userLong);
-          if (jarakMeter > maxRadius) {
+          var tolerance = 50; // Buffer toleransi deviasi satelit GPS di dalam ruangan
+          if (jarakMeter > (maxRadius + tolerance)) {
             resolve({
               success: false,
               message: 'Di luar radius sekolah! Jarak Anda ' + Math.round(jarakMeter) + ' meter (maksimal ' + Math.round(maxRadius) + ' meter).'
@@ -626,7 +630,7 @@ var API = {
           { id_user: 'USR-003', nama_guru: 'Ustadzah Fatimah' },
           { id_user: 'USR-004', nama_guru: 'Ustadz Abdullah' }
         ],
-        settings: { LAT_SEKOLAH: '-6.3982', LONG_SEKOLAH: '106.8271', MAX_RADIUS_METER: '300', JAM_MASUK_STD: '07:00', JAM_PULANG_STD: '16:00' },
+        settings: { LAT_SEKOLAH: '-6.41022', LONG_SEKOLAH: '106.82729', MAX_RADIUS_METER: '350', JAM_MASUK_STD: '07:00', JAM_PULANG_STD: '16:00' },
         realtimeMonitoring: [
           { id_user: 'USR-002', nama_guru: 'Ustadz Ahmad Fauzi', status_presensi: 'Sudah Absen', detail: { jam_masuk: '06:55:12', status_masuk: 'Tepat Waktu', foto_masuk: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300', jam_pulang: '16:05:30', status_pulang: 'Tepat Waktu', foto_pulang: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300' } },
           { id_user: 'USR-003', nama_guru: 'Ustadzah Fatimah', status_presensi: 'Sudah Absen', detail: { jam_masuk: '07:12:45', status_masuk: 'Terlambat', foto_masuk: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300', jam_pulang: '14:50:11', status_pulang: 'Pulang Terlalu Cepat', foto_pulang: '', alasan_masuk: 'Macet Margonda' } },

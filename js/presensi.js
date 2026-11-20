@@ -10,17 +10,25 @@ var capturedPhotoBase64 = '';
 var currentLat = null;
 var currentLong = null;
 var currentDistanceMeters = null;
+var currentAccuracy = null;
 var gpsStatusValid = false;
-var activeSchoolSettings = {
-  LAT_SEKOLAH: '-6.3982',
-  LONG_SEKOLAH: '106.8271',
-  MAX_RADIUS_METER: '300',
+var gpsWatchId = null;
+
+var activeSchoolSettings = JSON.parse(localStorage.getItem('daarulilmi_cached_settings') || 'null') || {
+  LAT_SEKOLAH: '-6.41022',
+  LONG_SEKOLAH: '106.82729',
+  MAX_RADIUS_METER: '350',
   JAM_MASUK_STD: '07:00',
   JAM_PULANG_STD: '16:00'
 };
 var stateGuru = { page: 1, limit: 5, search: '' };
 
 function loadGuruDashboard() {
+  // Pre-load pengaturan sekolah terbaru di background
+  API.getSettings().then(function(s) {
+    if (s) activeSchoolSettings = s;
+  });
+
   loadTodayStatusGuru();
   loadRiwayatGuru();
   loadIzinGuru();
@@ -257,10 +265,19 @@ function openAbsenModal(type) {
   resetCameraUI();
   startCamera();
 
+  // Kunci titik koordinat GPS seketika tanpa menunda tunggu jaringan
+  getGPSLocation();
+  evaluateAlasanBox(type);
+
+  // Ambil pembaruan pengaturan dari server secara paralel
   API.getSettings().then(function(settings) {
-    activeSchoolSettings = settings || activeSchoolSettings;
-    evaluateAlasanBox(type);
-    getGPSLocation();
+    if (settings) {
+      activeSchoolSettings = settings;
+      evaluateAlasanBox(type);
+      if (currentLat !== null && currentLong !== null) {
+        evaluateGPSDistance();
+      }
+    }
   });
 }
 
@@ -302,6 +319,10 @@ function updateSubmitButtonState() {
 
 function closeAbsenModal() {
   stopCamera();
+  if (gpsWatchId) {
+    try { navigator.geolocation.clearWatch(gpsWatchId); } catch (e) {}
+    gpsWatchId = null;
+  }
   document.getElementById('modalAbsen').classList.add('hidden');
 }
 
@@ -519,14 +540,18 @@ function evaluateGPSDistance() {
   var alertBox = document.getElementById('gpsStatusAlert');
   if (currentLat === null || currentLong === null) return;
 
-  var latSekolah = parseFloat(activeSchoolSettings.LAT_SEKOLAH || '-6.3982');
-  var longSekolah = parseFloat(activeSchoolSettings.LONG_SEKOLAH || '106.8271');
-  var maxRadius = parseFloat(activeSchoolSettings.MAX_RADIUS_METER || '300');
+  var latSekolah = parseFloat(activeSchoolSettings.LAT_SEKOLAH || '-6.41022');
+  var longSekolah = parseFloat(activeSchoolSettings.LONG_SEKOLAH || '106.82729');
+  var maxRadius = parseFloat(activeSchoolSettings.MAX_RADIUS_METER || '350');
 
   currentDistanceMeters = hitungJarakMeter(latSekolah, longSekolah, currentLat, currentLong);
   var jarakBulat = Math.round(currentDistanceMeters);
 
-  if (currentDistanceMeters <= maxRadius) {
+  // Berikan toleransi akurasi GPS: jika ponsel memiliki margin error (misal di dalam ruangan)
+  var accuracyTolerance = Math.min(Math.round((currentAccuracy || 0) * 0.5), 60);
+  var effectiveRadius = maxRadius + accuracyTolerance;
+
+  if (currentDistanceMeters <= effectiveRadius) {
     gpsStatusValid = true;
     if (txt) txt.innerText = jarakBulat + 'm dari sekolah (Valid)';
     if (badge) badge.className = 'absolute bottom-2 left-2 bg-emerald-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-emerald-400/50 z-20';
@@ -539,8 +564,9 @@ function evaluateGPSDistance() {
     if (txt) txt.innerText = 'Di luar radius (' + jarakBulat + 'm)';
     if (badge) badge.className = 'absolute bottom-2 left-2 bg-rose-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-rose-400/50 z-20';
     if (alertBox) {
-      alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center space-x-2 text-left border bg-rose-50 border-rose-200 text-rose-800';
-      alertBox.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600 flex-shrink-0"></i><span><b>Di Luar Radius!</b> Jarak Anda <b>' + jarakBulat + ' meter</b> (Maksimal ' + Math.round(maxRadius) + 'm). Absen ditolak.</span>';
+      alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between text-left border bg-rose-50 border-rose-200 text-rose-800';
+      alertBox.innerHTML = '<div class="flex items-center space-x-2"><i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600 flex-shrink-0"></i><span><b>Di Luar Radius!</b> Jarak Anda <b>' + jarakBulat + 'm</b> (Maks ' + Math.round(maxRadius) + 'm).</span></div>' +
+        '<button type="button" onclick="getGPSLocation()" class="ml-2 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] flex-shrink-0 shadow-sm transition active:scale-95">Segarkan GPS</button>';
     }
   }
   if (window.lucide) lucide.createIcons();
@@ -552,30 +578,12 @@ function getGPSLocation() {
   var badge = document.getElementById('gpsBadge');
   var alertBox = document.getElementById('gpsStatusAlert');
 
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      function(pos) {
-        currentLat = parseFloat(pos.coords.latitude.toFixed(6));
-        currentLong = parseFloat(pos.coords.longitude.toFixed(6));
-        evaluateGPSDistance();
-      },
-      function(err) {
-        currentLat = null;
-        currentLong = null;
-        gpsStatusValid = false;
-        if (txt) txt.innerText = 'GPS Tidak Aktif / Ditolak';
-        if (badge) badge.className = 'absolute bottom-2 left-2 bg-rose-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-rose-400/50 z-20';
-        if (alertBox) {
-          alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between text-left border bg-rose-50 border-rose-200 text-rose-800';
-          alertBox.innerHTML = '<div class="flex items-center space-x-2"><i data-lucide="map-pin-off" class="w-4 h-4 text-rose-600 flex-shrink-0"></i><span><b>GPS Wajib Aktif!</b> Aktifkan GPS di HP & izinkan lokasi.</span></div>' +
-            '<button type="button" onclick="getGPSLocation()" class="ml-2 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] flex-shrink-0 shadow-sm transition active:scale-95">Ulangi GPS</button>';
-        }
-        if (window.lucide) lucide.createIcons();
-        updateSubmitButtonState();
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-    );
-  } else {
+  if (gpsWatchId) {
+    try { navigator.geolocation.clearWatch(gpsWatchId); } catch (e) {}
+    gpsWatchId = null;
+  }
+
+  if (!navigator.geolocation) {
     currentLat = null;
     currentLong = null;
     gpsStatusValid = false;
@@ -586,7 +594,96 @@ function getGPSLocation() {
     }
     if (window.lucide) lucide.createIcons();
     updateSubmitButtonState();
+    return;
   }
+
+  if (txt) txt.innerText = 'Mengunci Posisi GPS...';
+  if (badge) badge.className = 'absolute bottom-2 left-2 bg-slate-800/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-slate-600 z-20';
+  if (alertBox) {
+    alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center space-x-2 text-left border bg-blue-50 border-blue-200 text-blue-800';
+    alertBox.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin text-blue-600 flex-shrink-0"></i><span>Mengunci sinyal GPS & koordinat lokasi sekolah...</span>';
+    alertBox.classList.remove('hidden');
+  }
+  if (window.lucide) lucide.createIcons();
+
+  function onGpsSuccess(pos) {
+    currentLat = parseFloat(pos.coords.latitude.toFixed(6));
+    currentLong = parseFloat(pos.coords.longitude.toFixed(6));
+    currentAccuracy = pos.coords.accuracy || 0;
+    evaluateGPSDistance();
+  }
+
+  // Tahap 1: Coba ambil lokasi akurasi tinggi (izinkan cache 60 detik agar instan jika Google Maps baru dibuka)
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      onGpsSuccess(pos);
+      startGpsWatcher();
+    },
+    function(err) {
+      // Jika izin lokasi ditolak secara tegas oleh user/OS
+      if (err.code === 1) { // PERMISSION_DENIED
+        currentLat = null;
+        currentLong = null;
+        gpsStatusValid = false;
+        if (txt) txt.innerText = 'Izin Lokasi Ditolak';
+        if (badge) badge.className = 'absolute bottom-2 left-2 bg-rose-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-rose-400/50 z-20';
+        if (alertBox) {
+          alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between text-left border bg-rose-50 border-rose-200 text-rose-800';
+          alertBox.innerHTML = '<div class="flex items-center space-x-2"><i data-lucide="map-pin-off" class="w-4 h-4 text-rose-600 flex-shrink-0"></i><span><b>Izin Lokasi Ditolak!</b> Aktifkan izin lokasi di info aplikasi HP.</span></div>' +
+            '<button type="button" onclick="getGPSLocation()" class="ml-2 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] flex-shrink-0 shadow-sm transition active:scale-95">Coba Lagi</button>';
+        }
+        if (window.lucide) lucide.createIcons();
+        updateSubmitButtonState();
+        return;
+      }
+
+      // Tahap 2: Jika timeout atau satelit terhalang di dalam ruangan, otomatis fallback ke Jaringan / WiFi / Seluler
+      if (alertBox) {
+        alertBox.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin text-amber-600 flex-shrink-0"></i><span>Satelit GPS terhalang, mengalihkan ke sinyal lokasi jaringan/WiFi...</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          onGpsSuccess(pos);
+          startGpsWatcher();
+        },
+        function(fallbackErr) {
+          currentLat = null;
+          currentLong = null;
+          gpsStatusValid = false;
+          if (txt) txt.innerText = 'Sinyal GPS Lemah';
+          if (badge) badge.className = 'absolute bottom-2 left-2 bg-amber-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-amber-400/50 z-20';
+          if (alertBox) {
+            alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between text-left border bg-amber-50 border-amber-200 text-amber-800';
+            alertBox.innerHTML = '<div class="flex items-center space-x-2"><i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 flex-shrink-0"></i><span><b>Sinyal GPS Lemah!</b> Coba buka Google Maps sebentar lalu klik tombol Ulangi.</span></div>' +
+              '<button type="button" onclick="getGPSLocation()" class="ml-2 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[10px] flex-shrink-0 shadow-sm transition active:scale-95">Ulangi GPS</button>';
+          }
+          if (window.lucide) lucide.createIcons();
+          updateSubmitButtonState();
+          startGpsWatcher();
+        },
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 }
+      );
+    },
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+  );
+}
+
+function startGpsWatcher() {
+  if (gpsWatchId || !navigator.geolocation) return;
+  try {
+    gpsWatchId = navigator.geolocation.watchPosition(
+      function(pos) {
+        currentLat = parseFloat(pos.coords.latitude.toFixed(6));
+        currentLong = parseFloat(pos.coords.longitude.toFixed(6));
+        currentAccuracy = pos.coords.accuracy || 0;
+        evaluateGPSDistance();
+      },
+      function() {},
+      { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
+    );
+  } catch (e) {}
 }
 
 function submitAbsen() {

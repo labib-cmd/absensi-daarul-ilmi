@@ -412,9 +412,9 @@ function renderAdminDashboard(res) {
   }
 
   if (res.settings) {
-    document.getElementById('cfgLat').value = res.settings.LAT_SEKOLAH || '-6.3982';
-    document.getElementById('cfgLong').value = res.settings.LONG_SEKOLAH || '106.8271';
-    document.getElementById('cfgRadius').value = res.settings.MAX_RADIUS_METER || '300';
+    document.getElementById('cfgLat').value = res.settings.LAT_SEKOLAH || '-6.41022';
+    document.getElementById('cfgLong').value = res.settings.LONG_SEKOLAH || '106.82729';
+    document.getElementById('cfgRadius').value = res.settings.MAX_RADIUS_METER || '350';
     document.getElementById('cfgJamMasuk').value = res.settings.JAM_MASUK_STD || '07:00';
     document.getElementById('cfgJamPulang').value = res.settings.JAM_PULANG_STD || '16:00';
     updateGoogleMapsPreview();
@@ -471,8 +471,8 @@ function renderAdminDashboard(res) {
 }
 
 function updateGoogleMapsPreview() {
-  var lat = document.getElementById('cfgLat').value.trim() || '-6.3982';
-  var long = document.getElementById('cfgLong').value.trim() || '106.8271';
+  var lat = document.getElementById('cfgLat').value.trim() || '-6.41022';
+  var long = document.getElementById('cfgLong').value.trim() || '106.82729';
   var iframe = document.getElementById('iframeGoogleMaps');
   if (iframe) {
     iframe.src = 'https://maps.google.com/maps?q=' + lat + ',' + long + '&hl=id&z=17&output=embed';
