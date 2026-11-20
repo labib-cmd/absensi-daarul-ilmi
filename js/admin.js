@@ -248,8 +248,10 @@ function renderRealtimeMonitoringList() {
       var colorStatMasuk = statMasuk === 'Tepat Waktu' 
         ? 'text-emerald-700 bg-emerald-100/70 border-emerald-200' 
         : 'text-rose-700 bg-rose-100/70 border-rose-200';
+      var safeAlasanM = (g.detail.alasan_masuk || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      var safeNamaGuru = (g.nama_guru || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
       var fotoMBtn = g.detail.foto_masuk 
-        ? '<button type="button" onclick="openFotoModal(\'' + g.detail.foto_masuk + '\', \'' + g.nama_guru + '\', \'Datang\')" class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[9px] font-bold flex items-center justify-center space-x-1 mt-1.5 transition"><i data-lucide="image" class="w-3 h-3"></i><span>Lihat Foto</span></button>' 
+        ? '<button type="button" onclick="openFotoModal(\'' + g.detail.foto_masuk + '\', \'' + safeNamaGuru + '\', \'Datang\', \'' + safeAlasanM + '\')" class="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[9px] font-bold flex items-center justify-center space-x-1 mt-1.5 transition"><i data-lucide="image" class="w-3 h-3"></i><span>Lihat Foto</span></button>' 
         : '';
       var alasanMText = g.detail.alasan_masuk ? '<span class="text-[9px] text-amber-700 italic block mt-1 leading-tight">Ket: ' + g.detail.alasan_masuk + '</span>' : '';
 
@@ -283,8 +285,10 @@ function renderRealtimeMonitoringList() {
       var colorStatPulang = statPulang === 'Tepat Waktu' 
         ? 'text-emerald-700 bg-emerald-100/70 border-emerald-200' 
         : 'text-amber-700 bg-amber-100/70 border-amber-200';
+      var safeAlasanP = (g.detail.alasan_pulang || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      var safeNamaGuruP = (g.nama_guru || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
       var fotoPBtn = g.detail.foto_pulang 
-        ? '<button type="button" onclick="openFotoModal(\'' + g.detail.foto_pulang + '\', \'' + g.nama_guru + '\', \'Pulang\')" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-bold flex items-center justify-center space-x-1 mt-1.5 transition"><i data-lucide="image" class="w-3 h-3"></i><span>Lihat Foto</span></button>' 
+        ? '<button type="button" onclick="openFotoModal(\'' + g.detail.foto_pulang + '\', \'' + safeNamaGuruP + '\', \'Pulang\', \'' + safeAlasanP + '\')" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-bold flex items-center justify-center space-x-1 mt-1.5 transition"><i data-lucide="image" class="w-3 h-3"></i><span>Lihat Foto</span></button>' 
         : '';
       var alasanPText = g.detail.alasan_pulang ? '<span class="text-[9px] text-amber-700 italic block mt-1 leading-tight">Ket: ' + g.detail.alasan_pulang + '</span>' : '';
 
@@ -432,17 +436,28 @@ function renderAdminDashboard(res) {
       var statMColor = r.status_masuk === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50';
       var statPColor = r.status_pulang === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50';
 
-      var btnFotoM = r.foto_masuk ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_masuk + '\', \'' + r.nama_guru + '\', \'Masuk\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Masuk"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
-      var btnFotoP = r.foto_pulang ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_pulang + '\', \'' + r.nama_guru + '\', \'Pulang\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Pulang"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
+      var safeAlasanM = (r.alasan_masuk || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      var safeAlasanP = (r.alasan_pulang || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      var safeNama = (r.nama_guru || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+      var btnFotoM = r.foto_masuk ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_masuk + '\', \'' + safeNama + '\', \'Masuk\', \'' + safeAlasanM + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Masuk"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
+      var btnFotoP = r.foto_pulang ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_pulang + '\', \'' + safeNama + '\', \'Pulang\', \'' + safeAlasanP + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Pulang"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
+
+      var ketAlasanM = r.alasan_masuk 
+        ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_masuk + '</div>' 
+        : '';
+      var ketAlasanP = r.alasan_pulang 
+        ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_pulang + '</div>' 
+        : '';
 
       var labelHariTgl = (r.hari ? '<span class="font-bold text-slate-800">' + r.hari + ',</span> ' : '') + r.tanggal;
 
-      var tdG = '<td class="p-1.5 font-bold text-slate-700">' + r.nama_guru + '</td>';
-      var tdT = '<td class="p-1.5 text-slate-500 whitespace-nowrap">' + labelHariTgl + '</td>';
-      var tdM = '<td class="p-1.5"><span class="font-semibold">' + (r.jam_masuk || '--') + '</span> ' + 
-        (r.status_masuk ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statMColor + '">' + r.status_masuk + '</span>' : '') + btnFotoM + '</td>';
-      var tdP = '<td class="p-1.5"><span class="font-semibold">' + (r.jam_pulang || '--') + '</span> ' + 
-        (r.status_pulang ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statPColor + '">' + r.status_pulang + '</span>' : '') + btnFotoP + '</td>';
+      var tdG = '<td class="p-1.5 align-top font-bold text-slate-700">' + r.nama_guru + '</td>';
+      var tdT = '<td class="p-1.5 align-top text-slate-500 whitespace-nowrap">' + labelHariTgl + '</td>';
+      var tdM = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_masuk || '--') + '</span> ' + 
+        (r.status_masuk ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statMColor + '">' + r.status_masuk + '</span>' : '') + btnFotoM + ketAlasanM + '</td>';
+      var tdP = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_pulang || '--') + '</span> ' + 
+        (r.status_pulang ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statPColor + '">' + r.status_pulang + '</span>' : '') + btnFotoP + ketAlasanP + '</td>';
       
       tr.innerHTML = tdG + tdT + tdM + tdP;
       tbody.appendChild(tr);

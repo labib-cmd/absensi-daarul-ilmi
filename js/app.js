@@ -40,7 +40,7 @@ function closeNotif() {
 }
 
 // Modal Preview Foto Selfie
-function openFotoModal(urlFoto, namaGuru, tipe) {
+function openFotoModal(urlFoto, namaGuru, tipe, alasan) {
   if (!urlFoto || urlFoto === '-') {
     showNotif('Foto Tidak Tersedia', 'Belum ada bukti foto selfie untuk presensi ini.', false);
     return;
@@ -55,6 +55,17 @@ function openFotoModal(urlFoto, namaGuru, tipe) {
   var img = document.getElementById('imgFotoDetail');
   img.src = urlFoto;
 
+  var alasanBox = document.getElementById('viewFotoAlasanBox');
+  var alasanText = document.getElementById('viewFotoAlasanText');
+  if (alasanBox && alasanText) {
+    if (alasan && String(alasan).trim() !== '' && String(alasan).trim() !== '-') {
+      alasanText.innerText = alasan;
+      alasanBox.classList.remove('hidden');
+    } else {
+      alasanBox.classList.add('hidden');
+    }
+  }
+
   var btnLink = document.getElementById('btnBukaLinkFoto');
   if (btnLink) {
     btnLink.href = urlFoto;
@@ -68,6 +79,8 @@ function closeFotoModal() {
   document.getElementById('modalViewFoto').classList.add('hidden');
   var img = document.getElementById('imgFotoDetail');
   if (img) img.src = '';
+  var alasanBox = document.getElementById('viewFotoAlasanBox');
+  if (alasanBox) alasanBox.classList.add('hidden');
 }
 
 function handleFotoLoadError() {

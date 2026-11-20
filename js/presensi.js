@@ -199,8 +199,12 @@ function renderTableGuru(items, pag) {
     var badgeMClass = r.status_masuk === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-rose-700 bg-rose-50 border border-rose-200';
     var badgePClass = r.status_pulang === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-amber-700 bg-amber-50 border border-amber-200';
 
-    var btnFotoM = r.foto_masuk ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_masuk + '\', \'' + (currentUser ? currentUser.nama_guru : 'Guru') + '\', \'Masuk\')" class="text-emerald-700 hover:text-emerald-900 ml-1 inline-block" title="Lihat Foto Masuk"><i data-lucide="image" class="w-3.5 h-3.5 inline"></i></button>' : '';
-    var btnFotoP = r.foto_pulang ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_pulang + '\', \'' + (currentUser ? currentUser.nama_guru : 'Guru') + '\', \'Pulang\')" class="text-emerald-700 hover:text-emerald-900 ml-1 inline-block" title="Lihat Foto Pulang"><i data-lucide="image" class="w-3.5 h-3.5 inline"></i></button>' : '';
+    var safeAlasanM = (r.alasan_masuk || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    var safeAlasanP = (r.alasan_pulang || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    var safeNamaGuru = (currentUser ? currentUser.nama_guru : 'Guru').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+    var btnFotoM = r.foto_masuk ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_masuk + '\', \'' + safeNamaGuru + '\', \'Masuk\', \'' + safeAlasanM + '\')" class="text-emerald-700 hover:text-emerald-900 ml-1 inline-block" title="Lihat Foto Masuk"><i data-lucide="image" class="w-3.5 h-3.5 inline"></i></button>' : '';
+    var btnFotoP = r.foto_pulang ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_pulang + '\', \'' + safeNamaGuru + '\', \'Pulang\', \'' + safeAlasanP + '\')" class="text-emerald-700 hover:text-emerald-900 ml-1 inline-block" title="Lihat Foto Pulang"><i data-lucide="image" class="w-3.5 h-3.5 inline"></i></button>' : '';
 
     var ketAlasanM = r.alasan_masuk ? '<span class="block text-[9px] text-amber-700 italic">Ket: ' + r.alasan_masuk + '</span>' : '';
     var ketAlasanP = r.alasan_pulang ? '<span class="block text-[9px] text-amber-700 italic">Ket: ' + r.alasan_pulang + '</span>' : '';
