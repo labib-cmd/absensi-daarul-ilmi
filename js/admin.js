@@ -1421,28 +1421,9 @@ function downloadRekapPdf() {
       }
     }
 
-    var rowsHtml = '';
-    displayData.forEach(function(r, idx) {
-      var jamM = r.jam_masuk ? (r.jam_masuk + ' (' + (r.status_masuk || 'Tepat Waktu') + ')') : '--:--';
-      var jamP = r.jam_pulang ? (r.jam_pulang + ' (' + (r.status_pulang || 'Tepat Waktu') + ')') : '--:--';
-      var ket = r.alasan_masuk || r.alasan_pulang || '-';
-
-      rowsHtml += '<tr>' +
-        '<td style="text-align: center;">' + (idx + 1) + '</td>' +
-        '<td><strong>' + (r.nama_guru || '-') + '</strong></td>' +
-        '<td style="text-align: center;">' + (r.tanggal || '-') + '</td>' +
-        '<td style="text-align: center;">' + jamM + '</td>' +
-        '<td style="text-align: center;">' + jamP + '</td>' +
-        '<td>' + ket + '</td>' +
-      '</tr>';
-    });
-    if (displayData.length === 0) {
-      rowsHtml = '<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 10px;">Tidak ada riwayat presensi pada periode ini.</td></tr>';
-    }
-
     var logoImgSrc = (typeof DAARUL_ILMI_LOGO_BASE64 !== 'undefined' && DAARUL_ILMI_LOGO_BASE64) ? DAARUL_ILMI_LOGO_BASE64 : 'img/logo.jpg';
 
-    var kopSuratHtml = '<div class="kop" style="margin-bottom: 12px; page-break-inside: avoid; page-break-after: avoid;">' +
+    var kopSuratHtml = '<div class="kop" style="margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid;">' +
       '<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 4px; background: transparent;">' +
         '<tr style="border: none; background: transparent;">' +
           '<td style="width: 95px; min-width: 95px; max-width: 95px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: center;">' +
@@ -1461,61 +1442,193 @@ function downloadRekapPdf() {
       '<div style="border-top: 2.5px solid #000000; border-bottom: 1px solid #000000; height: 3.5px; margin-top: 6px; margin-bottom: 12px;"></div>' +
     '</div>';
 
-    var bodyContentHtml = kopSuratHtml +
-      '<div class="judul-laporan" style="text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a; page-break-inside: avoid; page-break-after: avoid;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
-      '<div class="sub-judul" style="text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px; page-break-inside: avoid; page-break-after: avoid;">' + subJudul + '</div>' +
-      '<div class="sub-periode" style="text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px; page-break-inside: avoid; page-break-after: avoid;">' + labelPeriodeRekap + '</div>' +
-      '<div class="tgl-cetak" style="text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px; page-break-inside: avoid; page-break-after: avoid;">Waktu Cetak: ' + tglCetak + '</div>' +
-      ringkasanBoxHtml +
-      tabelPersenPerGuruHtml +
-      '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; page-break-inside: avoid; page-break-after: avoid;">' + (isFilteredSingleGuru ? ('Detail Riwayat Presensi (' + labelPeriodeRekap + ')') : ('2. Detail Riwayat Presensi Lengkap (' + labelPeriodeRekap + ')')) + '</div>' +
-      '<table>' +
-        '<thead>' +
-          '<tr>' +
-            '<th style="width: 35px; text-align: center;">No</th>' +
-            '<th>Nama Guru / Karyawan</th>' +
-            '<th style="width: 80px; text-align: center;">Tanggal</th>' +
-            '<th style="width: 140px; text-align: center;">Presensi Datang</th>' +
-            '<th style="width: 140px; text-align: center;">Presensi Pulang</th>' +
-            '<th>Keterangan / Alasan</th>' +
-          '</tr>' +
-        '</thead>' +
-        '<tbody>' + rowsHtml + '</tbody>' +
-      '</table>' +
-      '<div class="ttd-container">' +
-        '<div class="ttd-box">' +
-          '<p style="margin: 0;">Mengetahui,</p>' +
-          '<p style="margin: 3px 0 0 0;"><strong>Kepala Sekolah</strong></p>' +
-          '<div class="ttd-space"></div>' +
-          '<p style="margin: 0;"><strong>( ........................................ )</strong></p>' +
-        '</div>' +
-        '<div class="ttd-box">' +
-          '<p style="margin: 0;">Depok, ' + (tglCetak.indexOf(',') !== -1 ? tglCetak.split(',')[1].trim() : tglCetak) + '</p>' +
-          '<p style="margin: 3px 0 0 0;"><strong>Bagian Tata Usaha</strong></p>' +
-          '<div class="ttd-space"></div>' +
-          '<p style="margin: 0;"><strong>( ........................................ )</strong></p>' +
-        '</div>' +
-      '</div>';
+    var ttdHtml = '<div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 11px; page-break-inside: avoid; break-inside: avoid;">' +
+      '<div class="ttd-box" style="width: 220px; text-align: center;">' +
+        '<p style="margin: 0;">Mengetahui,</p>' +
+        '<p style="margin: 3px 0 0 0;"><strong>Kepala Sekolah</strong></p>' +
+        '<div class="ttd-space" style="height: 45px;"></div>' +
+        '<p style="margin: 0;"><strong>( ........................................ )</strong></p>' +
+      '</div>' +
+      '<div class="ttd-box" style="width: 220px; text-align: center;">' +
+        '<p style="margin: 0;">Depok, ' + (tglCetak.indexOf(',') !== -1 ? tglCetak.split(',')[1].trim() : tglCetak) + '</p>' +
+        '<p style="margin: 3px 0 0 0;"><strong>Bagian Tata Usaha</strong></p>' +
+        '<div class="ttd-space" style="height: 45px;"></div>' +
+        '<p style="margin: 0;"><strong>( ........................................ )</strong></p>' +
+      '</div>' +
+    '</div>';
+
+    function renderDetailRow(r, no) {
+      var jamM = r.jam_masuk ? (r.jam_masuk + ' (' + (r.status_masuk || 'Tepat Waktu') + ')') : '--:--';
+      var jamP = r.jam_pulang ? (r.jam_pulang + ' (' + (r.status_pulang || 'Tepat Waktu') + ')') : '--:--';
+      var ket = r.alasan_masuk || r.alasan_pulang || '-';
+
+      return '<tr style="page-break-inside: avoid; break-inside: avoid;">' +
+        '<td style="text-align: center;">' + no + '</td>' +
+        '<td><strong>' + (r.nama_guru || '-') + '</strong></td>' +
+        '<td style="text-align: center;">' + (r.tanggal || '-') + '</td>' +
+        '<td style="text-align: center;">' + jamM + '</td>' +
+        '<td style="text-align: center;">' + jamP + '</td>' +
+        '<td>' + ket + '</td>' +
+      '</tr>';
+    }
+
+    var tableHeaderHtml = '<thead>' +
+      '<tr>' +
+        '<th style="width: 35px; text-align: center;">No</th>' +
+        '<th style="width: 190px; text-align: left;">Nama Guru / Karyawan</th>' +
+        '<th style="width: 85px; text-align: center;">Tanggal</th>' +
+        '<th style="width: 140px; text-align: center;">Presensi Datang</th>' +
+        '<th style="width: 140px; text-align: center;">Presensi Pulang</th>' +
+        '<th style="text-align: left;">Keterangan / Alasan</th>' +
+      '</tr>' +
+    '</thead>';
+
+    var pagesHtmlList = [];
+    var CHUNK_SIZE = 14;
+
+    if (!isFilteredSingleGuru) {
+      // Halaman 1: Ringkasan Eksekutif & Komparasi 3 Periode + Tabel 1 (Ringkasan Persentase Guru)
+      var page1Content = kopSuratHtml +
+        '<div class="judul-laporan" style="text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
+        '<div class="sub-judul" style="text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px;">' + subJudul + '</div>' +
+        '<div class="sub-periode" style="text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px;">' + labelPeriodeRekap + '</div>' +
+        '<div class="tgl-cetak" style="text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px;">Waktu Cetak: ' + tglCetak + '</div>' +
+        ringkasanBoxHtml +
+        tabelPersenPerGuruHtml;
+
+      if (!displayData || displayData.length === 0) {
+        page1Content += '<div style="text-align: center; color: #64748b; padding: 18px; font-size: 11px;">Tidak ada riwayat presensi pada periode ini.</div>' + ttdHtml;
+        pagesHtmlList.push(page1Content);
+      } else {
+        var totalDetailPages = Math.ceil(displayData.length / CHUNK_SIZE);
+        var totalAllPages = 1 + totalDetailPages;
+        page1Content += '<div style="text-align: right; font-size: 10px; color: #64748b; font-style: italic; margin-top: 8px;">* Detail riwayat presensi tercantum pada halaman berikutnya (Halaman 1 dari ' + totalAllPages + ') &rarr;</div>';
+        pagesHtmlList.push(page1Content);
+
+        // Halaman 2, 3, dst.: Log Presensi Terperinci
+        for (var c = 0; c < totalDetailPages; c++) {
+          var chunkRows = displayData.slice(c * CHUNK_SIZE, (c + 1) * CHUNK_SIZE);
+          var currentPageNum = c + 2;
+          var isLastChunk = (c === totalDetailPages - 1);
+
+          var chunkHtml = '';
+          for (var rIdx = 0; rIdx < chunkRows.length; rIdx++) {
+            var globalNo = c * CHUNK_SIZE + rIdx + 1;
+            chunkHtml += renderDetailRow(chunkRows[rIdx], globalNo);
+          }
+
+          var pageDetailContent = '<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #065f46; padding-bottom: 4px; margin-bottom: 10px;">' +
+              '<span style="font-size: 11px; font-weight: bold; color: #065f46; text-transform: uppercase;">2. Detail Riwayat Presensi Lengkap (' + labelPeriodeRekap + ')</span>' +
+              '<span style="font-size: 10px; font-weight: 600; color: #64748b;">Halaman ' + currentPageNum + ' dari ' + totalAllPages + '</span>' +
+            '</div>' +
+            '<table>' + tableHeaderHtml + '<tbody>' + chunkHtml + '</tbody></table>';
+
+          if (isLastChunk) {
+            pageDetailContent += ttdHtml;
+          }
+          pagesHtmlList.push(pageDetailContent);
+        }
+      }
+    } else {
+      // Guru Tunggal
+      if (!displayData || displayData.length <= 8) {
+        var page1Content = kopSuratHtml +
+          '<div class="judul-laporan" style="text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
+          '<div class="sub-judul" style="text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px;">' + subJudul + '</div>' +
+          '<div class="sub-periode" style="text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px;">' + labelPeriodeRekap + '</div>' +
+          '<div class="tgl-cetak" style="text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px;">Waktu Cetak: ' + tglCetak + '</div>' +
+          ringkasanBoxHtml +
+          '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase;">Detail Riwayat Presensi (' + labelPeriodeRekap + ')</div>';
+
+        if (!displayData || displayData.length === 0) {
+          page1Content += '<div style="text-align: center; color: #64748b; padding: 15px; font-size: 11px;">Tidak ada riwayat presensi pada periode ini.</div>';
+        } else {
+          var rowsSingle = '';
+          for (var rIdx = 0; rIdx < displayData.length; rIdx++) {
+            rowsSingle += renderDetailRow(displayData[rIdx], rIdx + 1);
+          }
+          page1Content += '<table>' + tableHeaderHtml + '<tbody>' + rowsSingle + '</tbody></table>';
+        }
+        page1Content += ttdHtml;
+        pagesHtmlList.push(page1Content);
+      } else {
+        var firstChunk = displayData.slice(0, 8);
+        var remainingRows = displayData.slice(8);
+        var remainingDetailPages = Math.ceil(remainingRows.length / CHUNK_SIZE);
+        var totalSinglePages = 1 + remainingDetailPages;
+
+        var rowsFirstPage = '';
+        for (var rIdx = 0; rIdx < firstChunk.length; rIdx++) {
+          rowsFirstPage += renderDetailRow(firstChunk[rIdx], rIdx + 1);
+        }
+
+        var page1Content = kopSuratHtml +
+          '<div class="judul-laporan" style="text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
+          '<div class="sub-judul" style="text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px;">' + subJudul + '</div>' +
+          '<div class="sub-periode" style="text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px;">' + labelPeriodeRekap + '</div>' +
+          '<div class="tgl-cetak" style="text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px;">Waktu Cetak: ' + tglCetak + '</div>' +
+          ringkasanBoxHtml +
+          '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase;">Detail Riwayat Presensi (' + labelPeriodeRekap + ') - Halaman 1 dari ' + totalSinglePages + '</div>' +
+          '<table>' + tableHeaderHtml + '<tbody>' + rowsFirstPage + '</tbody></table>' +
+          '<div style="text-align: right; font-size: 10px; color: #64748b; font-style: italic;">* Bersambung ke halaman berikutnya &rarr;</div>';
+
+        pagesHtmlList.push(page1Content);
+
+        for (var c = 0; c < remainingDetailPages; c++) {
+          var chunkRows = remainingRows.slice(c * CHUNK_SIZE, (c + 1) * CHUNK_SIZE);
+          var currentPageNum = c + 2;
+          var isLastChunk = (c === remainingDetailPages - 1);
+
+          var chunkHtml = '';
+          for (var rIdx = 0; rIdx < chunkRows.length; rIdx++) {
+            var globalNo = 8 + c * CHUNK_SIZE + rIdx + 1;
+            chunkHtml += renderDetailRow(chunkRows[rIdx], globalNo);
+          }
+
+          var pageDetailContent = '<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #065f46; padding-bottom: 4px; margin-bottom: 10px;">' +
+              '<span style="font-size: 11px; font-weight: bold; color: #065f46; text-transform: uppercase;">Detail Riwayat Presensi - Lanjutan</span>' +
+              '<span style="font-size: 10px; font-weight: 600; color: #64748b;">Halaman ' + currentPageNum + ' dari ' + totalSinglePages + '</span>' +
+            '</div>' +
+            '<table>' + tableHeaderHtml + '<tbody>' + chunkHtml + '</tbody></table>';
+
+          if (isLastChunk) {
+            pageDetailContent += ttdHtml;
+          }
+          pagesHtmlList.push(pageDetailContent);
+        }
+      }
+    }
+
+    var fullPagesWrappedHtml = pagesHtmlList.map(function(pageContent, idx) {
+      var isLast = (idx === pagesHtmlList.length - 1);
+      var pageBreakHtml = isLast ? '' : '<div class="html2pdf__page-break" style="page-break-before: always; break-before: page; height: 0; margin: 0; padding: 0;"></div>';
+      return '<div class="pdf-page" style="width: 1060px; min-width: 1060px; max-width: 1060px; box-sizing: border-box; padding: 10px 14px; background: #ffffff; color: #1e293b; page-break-inside: avoid; break-inside: avoid;' + (isLast ? '' : ' page-break-after: always; break-after: page;') + '">' +
+        pageContent +
+      '</div>' + pageBreakHtml;
+    }).join('');
 
     var htmlDoc = '<!DOCTYPE html>' +
       '<html lang="id"><head><meta charset="UTF-8"><title>' + namaFileDownload + '</title>' +
       '<style>' +
-      'body { font-family: "Segoe UI", Arial, sans-serif; padding: 25px; color: #1e293b; line-height: 1.4; }' +
-      '.kop { margin-bottom: 14px; text-align: center; }' +
-      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 10px 0 2px 0; letter-spacing: 0.8px; color: #0f172a; }' +
+      '* { box-sizing: border-box; }' +
+      'body { font-family: "Segoe UI", Arial, sans-serif; padding: 0; margin: 0; color: #1e293b; line-height: 1.4; }' +
+      '.pdf-page { width: 1060px; min-width: 1060px; max-width: 1060px; margin: 0 auto; padding: 15px 20px; page-break-inside: avoid; break-inside: avoid; }' +
+      '.kop { margin-bottom: 12px; }' +
+      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a; }' +
       '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 2px; }' +
       '.sub-periode { text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px; }' +
-      '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 14px; }' +
-      'table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 20px; }' +
-      'th, td { border: 1px solid #cbd5e1; padding: 6px 8px; }' +
+      '.tgl-cetak { text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px; }' +
+      '.box-komparasi { background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; }' +
+      'table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 12px; }' +
+      'th, td { border: 1px solid #cbd5e1; padding: 4.5px 7px; vertical-align: middle; }' +
       'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 9px; font-weight: bold; }' +
       'tr:nth-child(even) { background-color: #f8fafc; }' +
-      '.ttd-container { display: flex; justify-content: space-between; margin-top: 30px; font-size: 11px; page-break-inside: avoid; }' +
+      '.ttd-container { display: flex; justify-content: space-between; margin-top: 25px; font-size: 11px; page-break-inside: avoid; break-inside: avoid; }' +
       '.ttd-box { width: 220px; text-align: center; }' +
-      '.ttd-space { height: 55px; }' +
-      '@media print { @page { size: A4 landscape; margin: 10mm; } body { padding: 0; } }' +
+      '.ttd-space { height: 45px; }' +
+      '@media print { @page { size: A4 landscape; margin: 8mm; } body { padding: 0; } .pdf-page { width: 100%; padding: 0; } }' +
       '</style></head><body>' +
-      bodyContentHtml +
+      fullPagesWrappedHtml +
       '<script>window.onload = function() { window.print(); };<\/script>' +
       '</body></html>';
 
@@ -1523,24 +1636,25 @@ function downloadRekapPdf() {
     showNotif('Mengunduh PDF', 'Sedang menyiapkan berkas PDF (' + namaFileDownload + '.pdf)...', true);
 
     if (window.html2pdf) {
-      var fullHtmlToRender = '<div style="width: 1060px; min-width: 1060px; max-width: 1060px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; color: #1e293b; background: #ffffff; padding: 10px 14px;">' +
+      var fullHtmlToRender = '<div style="width: 1060px; min-width: 1060px; max-width: 1060px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; color: #1e293b; background: #ffffff;">' +
         '<style>' +
         '* { box-sizing: border-box; }' +
-        '.kop { margin-bottom: 12px; page-break-inside: avoid; page-break-after: avoid; }' +
-        '.judul-laporan { text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a; page-break-inside: avoid; page-break-after: avoid; }' +
-        '.sub-judul { text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px; page-break-inside: avoid; page-break-after: avoid; }' +
-        '.sub-periode { text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px; page-break-inside: avoid; page-break-after: avoid; }' +
-        '.tgl-cetak { text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px; page-break-inside: avoid; page-break-after: avoid; }' +
-        '.box-komparasi { background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; page-break-inside: avoid; }' +
-        'table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 16px; page-break-inside: auto; }' +
-        'tr { page-break-inside: avoid; page-break-after: auto; }' +
-        'th, td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: middle; }' +
+        '.pdf-page { width: 1060px; min-width: 1060px; max-width: 1060px; margin: 0 auto; box-sizing: border-box; padding: 10px 14px; background: #ffffff; color: #1e293b; page-break-inside: avoid; break-inside: avoid; }' +
+        '.kop { margin-bottom: 12px; }' +
+        '.judul-laporan { text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a; }' +
+        '.sub-judul { text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px; }' +
+        '.sub-periode { text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px; }' +
+        '.tgl-cetak { text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px; }' +
+        '.box-komparasi { background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; }' +
+        'table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 12px; }' +
+        'tr { page-break-inside: avoid; break-inside: avoid; }' +
+        'th, td { border: 1px solid #cbd5e1; padding: 4.5px 7px; vertical-align: middle; }' +
         'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 9px; font-weight: bold; }' +
         'tr:nth-child(even) { background-color: #f8fafc; }' +
-        '.ttd-container { display: flex; justify-content: space-between; margin-top: 25px; font-size: 11px; page-break-inside: avoid; }' +
+        '.ttd-container { display: flex; justify-content: space-between; margin-top: 25px; font-size: 11px; page-break-inside: avoid; break-inside: avoid; }' +
         '.ttd-box { width: 220px; text-align: center; }' +
         '.ttd-space { height: 45px; }' +
-        '</style>' + bodyContentHtml + '</div>';
+        '</style>' + fullPagesWrappedHtml + '</div>';
 
       var opt = {
         margin: [8, 8, 8, 8],
@@ -1555,7 +1669,7 @@ function downloadRekapPdf() {
           windowWidth: 1080
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.ttd-container', '.box-komparasi', '.kop'] }
+        pagebreak: { mode: ['css', 'legacy'] }
       };
 
       html2pdf().set(opt).from(fullHtmlToRender).save().then(function() {
