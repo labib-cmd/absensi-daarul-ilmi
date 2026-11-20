@@ -1458,46 +1458,36 @@ function downloadRekapPdf() {
     showNotif('Mengunduh PDF', 'Sedang menyiapkan berkas PDF (' + namaFileDownload + '.pdf)...', true);
 
     if (window.html2pdf) {
-      var container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      container.style.width = '1050px';
-      container.style.background = '#ffffff';
-      container.style.padding = '25px';
-      container.style.color = '#1e293b';
-      container.style.fontFamily = '"Segoe UI", Arial, sans-serif';
-      container.innerHTML = '<style>' +
+      var fullHtmlToRender = '<div style="font-family: \'Segoe UI\', Arial, sans-serif; color: #1e293b; background: #ffffff; padding: 20px;">' +
+        '<style>' +
         '.kop { border-bottom: 3px double #065f46; padding-bottom: 12px; margin-bottom: 18px; text-align: center; }' +
-        '.kop h2 { margin: 0; font-size: 20px; color: #065f46; }' +
+        '.kop h2 { margin: 0; font-size: 20px; color: #065f46; letter-spacing: 0.5px; }' +
         '.kop h3 { margin: 4px 0 0 0; font-size: 13px; font-weight: 600; color: #334155; }' +
         '.kop p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; }' +
         '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 15px 0 2px 0; color: #0f172a; }' +
         '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 4px; }' +
         '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 16px; }' +
-        'table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }' +
-        'th, td { border: 1px solid #cbd5e1; padding: 7px 9px; }' +
-        'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 10px; font-weight: bold; }' +
+        'table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 20px; }' +
+        'th, td { border: 1px solid #cbd5e1; padding: 6px 8px; }' +
+        'th { background-color: #f1f5f9; color: #0f172a; text-transform: uppercase; font-size: 9px; font-weight: bold; }' +
         'tr:nth-child(even) { background-color: #f8fafc; }' +
-        '.ttd-container { display: flex; justify-content: space-between; margin-top: 35px; font-size: 12px; }' +
+        '.ttd-container { display: flex; justify-content: space-between; margin-top: 35px; font-size: 11px; page-break-inside: avoid; }' +
         '.ttd-box { width: 220px; text-align: center; }' +
-        '.ttd-space { height: 60px; }' +
-        '</style>' + bodyContentHtml;
-      document.body.appendChild(container);
+        '.ttd-space { height: 55px; }' +
+        '</style>' + bodyContentHtml + '</div>';
 
       var opt = {
         margin: [8, 8, 8, 8],
         filename: namaFileDownload + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        html2canvas: { scale: 1.5, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
-      html2pdf().set(opt).from(container).save().then(function() {
-        if (container.parentNode) document.body.removeChild(container);
+      html2pdf().set(opt).from(fullHtmlToRender).save().then(function() {
         showNotif('Unduh Berhasil', 'Berkas PDF (' + namaFileDownload + '.pdf) berhasil diunduh ke folder Downloads Anda.', true);
       }).catch(function(err) {
-        if (container.parentNode) document.body.removeChild(container);
         console.error('html2pdf fallback to print:', err);
         fallbackPrintWindow(htmlDoc);
       });
