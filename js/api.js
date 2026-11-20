@@ -546,7 +546,7 @@ var API = {
       var sb = getSupabase();
       if (sb) {
         var today = getTodayFormatted();
-        var rekapQuery = sb.from('absensi').select('*').order('created_at', { ascending: false }).limit(100);
+        var rekapQuery = sb.from('absensi').select('*').order('created_at', { ascending: false }).limit(1000);
         if (filterGuru && filterGuru !== 'ALL') {
           rekapQuery = rekapQuery.eq('id_user', filterGuru);
         }

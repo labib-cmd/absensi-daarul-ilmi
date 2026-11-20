@@ -10,6 +10,7 @@ var stateAdmin = {
   search: '',
   range: 'bulanan',
   tab: 'monitoring',
+  rekapViewMode: 'log',
   filterMonitoring: 'ALL',
   filterGuru: 'ALL'
 };
@@ -136,6 +137,27 @@ function switchAdminTab(tab) {
   } else if (tab === 'settings') {
     panS.classList.remove('hidden');
   }
+}
+
+function switchRekapViewMode(mode) {
+  stateAdmin.rekapViewMode = mode;
+  var btnLog = document.getElementById('btnSubTabLog');
+  var btnPersen = document.getElementById('btnSubTabPersen');
+  var boxLog = document.getElementById('containerRekapLog');
+  var boxPersen = document.getElementById('containerRekapPersen');
+
+  if (mode === 'persen') {
+    if (btnPersen) btnPersen.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-xs transition cursor-pointer';
+    if (btnLog) btnLog.className = 'px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer';
+    if (boxPersen) boxPersen.classList.remove('hidden');
+    if (boxLog) boxLog.classList.add('hidden');
+  } else {
+    if (btnLog) btnLog.className = 'px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-xs transition cursor-pointer';
+    if (btnPersen) btnPersen.className = 'px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer';
+    if (boxLog) boxLog.classList.remove('hidden');
+    if (boxPersen) boxPersen.classList.add('hidden');
+  }
+  if (window.lucide) lucide.createIcons();
 }
 
 function debounceLoadAdminData() {
@@ -388,12 +410,234 @@ function submitEditJamGuru(e) {
   });
 }
 
+function calculatePerGuruStats(rekapList, guruList) {
+  rekapList = rekapList || [];
+  guruList = guruList || [];
+
+  // Hitung tanggal unik yang ada kegiatan presensi
+  var uniqueDatesMap = {};
+  rekapList.forEach(function(r) {
+    if (r.tanggal) uniqueDatesMap[r.tanggal] = true;
+  });
+  var uniqueDates = Object.keys(uniqueDatesMap);
+  var totalHariEfektif = Math.max(1, uniqueDates.length);
+
+  var teachersMap = {};
+  guruList.forEach(function(g) {
+    teachersMap[g.id_user] = {
+      id_user: g.id_user,
+      nama_guru: g.nama_guru,
+      datesAttended: {},
+      totalHadir: 0,
+      tepatCount: 0,
+      lambatCount: 0
+    };
+  });
+
+  rekapList.forEach(function(r) {
+    var t = teachersMap[r.id_user];
+    if (!t) {
+      t = teachersMap[r.id_user] = {
+        id_user: r.id_user,
+        nama_guru: r.nama_guru || 'Guru',
+        datesAttended: {},
+        totalHadir: 0,
+        tepatCount: 0,
+        lambatCount: 0
+      };
+    }
+    if (r.tanggal && !t.datesAttended[r.tanggal]) {
+      t.datesAttended[r.tanggal] = true;
+      t.totalHadir++;
+      if (r.status_masuk === 'Tepat Waktu') t.tepatCount++;
+      else if (r.status_masuk === 'Terlambat') t.lambatCount++;
+    }
+  });
+
+  var perGuruStats = Object.values(teachersMap).map(function(t) {
+    var pct = totalHariEfektif > 0 ? ((t.totalHadir / totalHariEfektif) * 100).toFixed(1) : '0';
+    return {
+      id_user: t.id_user,
+      nama_guru: t.nama_guru,
+      totalHadir: t.totalHadir,
+      tepatCount: t.tepatCount,
+      lambatCount: t.lambatCount,
+      persenHadir: parseFloat(pct)
+    };
+  });
+
+  perGuruStats.sort(function(a, b) {
+    if (b.persenHadir !== a.persenHadir) return b.persenHadir - a.persenHadir;
+    return a.nama_guru.localeCompare(b.nama_guru);
+  });
+
+  var totalTargetSesi = Math.max(1, (guruList.length || perGuruStats.length) * totalHariEfektif);
+  var totalAktualHadir = perGuruStats.reduce(function(acc, x) { return acc + x.totalHadir; }, 0);
+  var totalTepat = perGuruStats.reduce(function(acc, x) { return acc + x.tepatCount; }, 0);
+  var totalLambat = perGuruStats.reduce(function(acc, x) { return acc + x.lambatCount; }, 0);
+  var persenKolektif = ((totalAktualHadir / totalTargetSesi) * 100).toFixed(1);
+
+  return {
+    totalHariEfektif: totalHariEfektif,
+    uniqueDates: uniqueDates,
+    perGuruStats: perGuruStats,
+    totalTargetSesi: totalTargetSesi,
+    totalAktualHadir: totalAktualHadir,
+    totalTepat: totalTepat,
+    totalLambat: totalLambat,
+    persenKolektif: parseFloat(persenKolektif)
+  };
+}
+
+function renderRekapStatsAndTables(rekapList, guruList) {
+  var selGuru = document.getElementById('filterGuru');
+  var selectedGuruId = (selGuru && selGuru.value) ? selGuru.value : 'ALL';
+
+  var statObj = calculatePerGuruStats(rekapList, guruList);
+  var totalHariEfektif = statObj.totalHariEfektif;
+  var perGuruStats = statObj.perGuruStats;
+
+  // Update Card Ringkasan Persentase Rekapan
+  var titleEl = document.getElementById('titlePersenRekap');
+  var badgeEl = document.getElementById('badgePersenTotal');
+  var barEl = document.getElementById('barPersenTotal');
+  var txtHariEl = document.getElementById('txtStatHariKerja');
+  var txtTepatEl = document.getElementById('txtStatTepatWaktu');
+  var txtLambatEl = document.getElementById('txtStatTerlambat');
+  var badgeCount = document.getElementById('rekapCountBadge');
+
+  if (badgeCount) badgeCount.innerText = rekapList.length + ' data presensi';
+  if (txtHariEl) txtHariEl.innerText = totalHariEfektif + ' Hari';
+
+  if (selectedGuruId !== 'ALL') {
+    var selectedStat = perGuruStats.find(function(s) { return s.id_user === selectedGuruId; });
+    if (selectedStat) {
+      if (titleEl) titleEl.innerText = 'Persentase: ' + selectedStat.nama_guru;
+      if (badgeEl) badgeEl.innerText = selectedStat.persenHadir + '%';
+      if (barEl) barEl.style.width = Math.min(100, selectedStat.persenHadir) + '%';
+      var tepatPct = selectedStat.totalHadir > 0 ? ((selectedStat.tepatCount / selectedStat.totalHadir) * 100).toFixed(0) : '0';
+      var lambatPct = selectedStat.totalHadir > 0 ? ((selectedStat.lambatCount / selectedStat.totalHadir) * 100).toFixed(0) : '0';
+      if (txtTepatEl) txtTepatEl.innerText = selectedStat.tepatCount + ' (' + tepatPct + '%)';
+      if (txtLambatEl) txtLambatEl.innerText = selectedStat.lambatCount + ' (' + lambatPct + '%)';
+    }
+  } else {
+    if (titleEl) titleEl.innerText = 'Persentase Kehadiran Seluruh Guru';
+    if (badgeEl) badgeEl.innerText = statObj.persenKolektif + '%';
+    if (barEl) barEl.style.width = Math.min(100, statObj.persenKolektif) + '%';
+    var tepatPctAll = statObj.totalAktualHadir > 0 ? ((statObj.totalTepat / statObj.totalAktualHadir) * 100).toFixed(0) : '0';
+    var lambatPctAll = statObj.totalAktualHadir > 0 ? ((statObj.totalLambat / statObj.totalAktualHadir) * 100).toFixed(0) : '0';
+    if (txtTepatEl) txtTepatEl.innerText = statObj.totalTepat + ' (' + tepatPctAll + '%)';
+    if (txtLambatEl) txtLambatEl.innerText = statObj.totalLambat + ' (' + lambatPctAll + '%)';
+  }
+
+  // Render Tabel Persentase Per Guru
+  var tbodyPersen = document.getElementById('tblPersenPerGuru');
+  if (tbodyPersen) {
+    tbodyPersen.innerHTML = '';
+    if (perGuruStats.length === 0) {
+      tbodyPersen.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-slate-400">Belum ada data kehadiran untuk periode ini.</td></tr>';
+    } else {
+      perGuruStats.forEach(function(s, idx) {
+        var tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition cursor-pointer';
+        tr.title = 'Klik untuk memfilter riwayat ' + s.nama_guru;
+        tr.onclick = function() {
+          var selG = document.getElementById('filterGuru');
+          if (selG) {
+            selG.value = s.id_user;
+            switchRekapViewMode('log');
+            loadAdminData();
+          }
+        };
+
+        var badgeColor = 'bg-rose-100 text-rose-800 border-rose-200';
+        var barColor = 'bg-rose-500';
+        if (s.persenHadir >= 85) {
+          badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+          barColor = 'bg-emerald-500';
+        } else if (s.persenHadir >= 60) {
+          badgeColor = 'bg-amber-100 text-amber-800 border-amber-300';
+          barColor = 'bg-amber-500';
+        }
+
+        tr.innerHTML = '<td class="p-1.5 text-center text-slate-400 font-semibold">' + (idx + 1) + '</td>' +
+          '<td class="p-1.5 font-bold text-slate-700 leading-tight">' + s.nama_guru + '</td>' +
+          '<td class="p-1.5 text-center font-semibold text-slate-800">' + s.totalHadir + '/' + totalHariEfektif + '</td>' +
+          '<td class="p-1.5 text-center font-bold text-emerald-700">' + s.tepatCount + '</td>' +
+          '<td class="p-1.5 text-center font-bold text-rose-700">' + s.lambatCount + '</td>' +
+          '<td class="p-1.5 text-right whitespace-nowrap">' +
+            '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-black border ' + badgeColor + '">' + s.persenHadir + '%</span>' +
+            '<div class="w-12 ml-auto bg-slate-100 rounded-full h-1 mt-1 overflow-hidden">' +
+              '<div class="' + barColor + ' h-1 rounded-full" style="width: ' + Math.min(100, s.persenHadir) + '%"></div>' +
+            '</div>' +
+          '</td>';
+        tbodyPersen.appendChild(tr);
+      });
+    }
+  }
+
+  // Render Tabel Log Presensi
+  var tbodyLog = document.getElementById('tblRekapAdmin');
+  if (tbodyLog) {
+    tbodyLog.innerHTML = '';
+    if (rekapList.length === 0) {
+      tbodyLog.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-400">Tidak ada rekap data.</td></tr>';
+    } else {
+      rekapList.forEach(function(r) {
+        var tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition';
+        
+        var statMColor = r.status_masuk === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50';
+        var statPColor = r.status_pulang === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50';
+
+        var safeAlasanM = (r.alasan_masuk || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        var safeAlasanP = (r.alasan_pulang || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        var safeNama = (r.nama_guru || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        var btnFotoM = r.foto_masuk ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_masuk + '\', \'' + safeNama + '\', \'Masuk\', \'' + safeAlasanM + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Masuk"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
+        var btnFotoP = r.foto_pulang ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_pulang + '\', \'' + safeNama + '\', \'Pulang\', \'' + safeAlasanP + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Pulang"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
+
+        var ketAlasanM = r.alasan_masuk 
+          ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_masuk + '</div>' 
+          : '';
+        var ketAlasanP = r.alasan_pulang 
+          ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_pulang + '</div>' 
+          : '';
+
+        var labelHariTgl = (r.hari ? '<span class="font-bold text-slate-800">' + r.hari + ',</span> ' : '') + r.tanggal;
+
+        var tdG = '<td class="p-1.5 align-top font-bold text-slate-700">' + r.nama_guru + '</td>';
+        var tdT = '<td class="p-1.5 align-top text-slate-500 whitespace-nowrap">' + labelHariTgl + '</td>';
+        var tdM = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_masuk || '--') + '</span> ' + 
+          (r.status_masuk ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statMColor + '">' + r.status_masuk + '</span>' : '') + btnFotoM + ketAlasanM + '</td>';
+        var tdP = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_pulang || '--') + '</span> ' + 
+          (r.status_pulang ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statPColor + '">' + r.status_pulang + '</span>' : '') + btnFotoP + ketAlasanP + '</td>';
+        
+        tr.innerHTML = tdG + tdT + tdM + tdP;
+        tbodyLog.appendChild(tr);
+      });
+    }
+  }
+}
+
 function renderAdminDashboard(res) {
-  document.getElementById('admTotalGuru').innerText = res.stats.totalGuru || 0;
-  document.getElementById('admSudahAbsen').innerText = res.stats.sudahAbsenMasukToday || 0;
+  var totalGuru = res.stats.totalGuru || 0;
+  var sudahMasuk = res.stats.sudahAbsenMasukToday || 0;
+  var sudahPulang = res.stats.sudahAbsenPulangToday || 0;
+  var belumAbsen = res.stats.belumAbsenToday || 0;
+
+  document.getElementById('admTotalGuru').innerText = totalGuru;
+  document.getElementById('admSudahAbsen').innerText = sudahMasuk;
   var elSudahPulang = document.getElementById('admSudahPulang');
-  if (elSudahPulang) elSudahPulang.innerText = res.stats.sudahAbsenPulangToday || 0;
-  document.getElementById('admBelumAbsen').innerText = res.stats.belumAbsenToday || 0;
+  if (elSudahPulang) elSudahPulang.innerText = sudahPulang;
+  document.getElementById('admBelumAbsen').innerText = belumAbsen;
+
+  // Persentase Kehadiran Hari Ini
+  var persenHariIni = totalGuru > 0 ? ((sudahMasuk / totalGuru) * 100).toFixed(1) : '0';
+  var elPersenHariIni = document.getElementById('admPersenHariIni');
+  if (elPersenHariIni) elPersenHariIni.innerText = persenHariIni + '%';
+  var elProgressHariIni = document.getElementById('admProgressHariIni');
+  if (elProgressHariIni) elProgressHariIni.style.width = persenHariIni + '%';
 
   if (res.guruList && res.guruList.length > 0) {
     cachedGuruList = res.guruList;
@@ -423,46 +667,7 @@ function renderAdminDashboard(res) {
   cachedRealtimeMonitoring = res.realtimeMonitoring || [];
   cachedRekapData = res.rekapitulasi || [];
   renderRealtimeMonitoringList();
-
-  var tbody = document.getElementById('tblRekapAdmin');
-  tbody.innerHTML = '';
-  if (!res.rekapitulasi || res.rekapitulasi.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-400">Tidak ada rekap data.</td></tr>';
-  } else {
-    res.rekapitulasi.forEach(function(r) {
-      var tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-50 transition';
-      
-      var statMColor = r.status_masuk === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50';
-      var statPColor = r.status_pulang === 'Tepat Waktu' ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50';
-
-      var safeAlasanM = (r.alasan_masuk || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      var safeAlasanP = (r.alasan_pulang || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      var safeNama = (r.nama_guru || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
-      var btnFotoM = r.foto_masuk ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_masuk + '\', \'' + safeNama + '\', \'Masuk\', \'' + safeAlasanM + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Masuk"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
-      var btnFotoP = r.foto_pulang ? ' <button type="button" onclick="openFotoModal(\'' + r.foto_pulang + '\', \'' + safeNama + '\', \'Pulang\', \'' + safeAlasanP + '\')" class="text-emerald-700 hover:text-emerald-900 inline" title="Lihat Foto Pulang"><i data-lucide="image" class="w-3 h-3 inline"></i></button>' : '';
-
-      var ketAlasanM = r.alasan_masuk 
-        ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_masuk + '</div>' 
-        : '';
-      var ketAlasanP = r.alasan_pulang 
-        ? '<div class="text-[9px] text-amber-800 bg-amber-50/90 border border-amber-200/80 rounded px-1.5 py-0.5 mt-1 leading-tight break-words max-w-[150px]"><span class="font-bold">Ket:</span> ' + r.alasan_pulang + '</div>' 
-        : '';
-
-      var labelHariTgl = (r.hari ? '<span class="font-bold text-slate-800">' + r.hari + ',</span> ' : '') + r.tanggal;
-
-      var tdG = '<td class="p-1.5 align-top font-bold text-slate-700">' + r.nama_guru + '</td>';
-      var tdT = '<td class="p-1.5 align-top text-slate-500 whitespace-nowrap">' + labelHariTgl + '</td>';
-      var tdM = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_masuk || '--') + '</span> ' + 
-        (r.status_masuk ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statMColor + '">' + r.status_masuk + '</span>' : '') + btnFotoM + ketAlasanM + '</td>';
-      var tdP = '<td class="p-1.5 align-top"><span class="font-semibold">' + (r.jam_pulang || '--') + '</span> ' + 
-        (r.status_pulang ? '<span class="text-[8px] px-1 py-0.5 rounded font-bold ' + statPColor + '">' + r.status_pulang + '</span>' : '') + btnFotoP + ketAlasanP + '</td>';
-      
-      tr.innerHTML = tdG + tdT + tdM + tdP;
-      tbody.appendChild(tr);
-    });
-  }
+  renderRekapStatsAndTables(res.rekapitulasi || [], res.guruList || cachedGuruList);
 
   document.getElementById('pageInfoAdmin').innerText = 'Hal ' + res.pagination.currentPage + ' dari ' + res.pagination.totalPages;
   document.getElementById('btnPrevAdmin').disabled = (res.pagination.currentPage <= 1);
@@ -694,6 +899,84 @@ function downloadRekapPdf() {
 
     var tglCetak = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     var subJudul = selectedGuruName ? 'Nama Guru: ' + selectedGuruName : 'Seluruh Guru & Karyawan';
+
+    // Hitung Persentase Kehadiran untuk Laporan
+    var statObj = calculatePerGuruStats(data, cachedGuruList);
+    var isFilteredSingleGuru = (selectedGuruId !== 'ALL');
+    var ringkasanPersenVal = statObj.persenKolektif;
+    var ringkasanHadirVal = statObj.totalAktualHadir;
+    var ringkasanTargetVal = statObj.totalTargetSesi;
+    var ringkasanTepatVal = statObj.totalTepat;
+    var ringkasanLambatVal = statObj.totalLambat;
+
+    if (isFilteredSingleGuru) {
+      var singleStat = statObj.perGuruStats.find(function(x) { return x.id_user === selectedGuruId || x.nama_guru === selectedGuruName; });
+      if (singleStat) {
+        ringkasanPersenVal = singleStat.persenHadir;
+        ringkasanHadirVal = singleStat.totalHadir;
+        ringkasanTargetVal = statObj.totalHariEfektif;
+        ringkasanTepatVal = singleStat.tepatCount;
+        ringkasanLambatVal = singleStat.lambatCount;
+      }
+    }
+
+    var ringkasanBoxHtml = '<div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;">' +
+      '<table style="width: 100%; border: none; margin: 0; font-size: 11px;">' +
+        '<tr style="background: transparent;">' +
+          '<td style="border: none; padding: 4px; vertical-align: top; width: 25%;">' +
+            '<div style="font-size: 10px; color: #166534; font-weight: bold; text-transform: uppercase;">Hari Efektif Presensi</div>' +
+            '<div style="font-size: 16px; font-weight: bold; color: #0f172a;">' + statObj.totalHariEfektif + ' <span style="font-size: 11px; font-weight: normal; color: #64748b;">Hari</span></div>' +
+          '</td>' +
+          '<td style="border: none; padding: 4px; vertical-align: top; width: 25%;">' +
+            '<div style="font-size: 10px; color: #166534; font-weight: bold; text-transform: uppercase;">' + (isFilteredSingleGuru ? 'Persentase Kehadiran' : 'Tingkat Kehadiran Total') + '</div>' +
+            '<div style="font-size: 16px; font-weight: bold; color: #15803d;">' + ringkasanPersenVal + '% <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + ringkasanHadirVal + '/' + ringkasanTargetVal + ')</span></div>' +
+          '</td>' +
+          '<td style="border: none; padding: 4px; vertical-align: top; width: 25%;">' +
+            '<div style="font-size: 10px; color: #166534; font-weight: bold; text-transform: uppercase;">Tepat Waktu</div>' +
+            '<div style="font-size: 16px; font-weight: bold; color: #16a34a;">' + ringkasanTepatVal + ' <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + (ringkasanHadirVal > 0 ? ((ringkasanTepatVal / ringkasanHadirVal) * 100).toFixed(1) : 0) + '%)</span></div>' +
+          '</td>' +
+          '<td style="border: none; padding: 4px; vertical-align: top; width: 25%;">' +
+            '<div style="font-size: 10px; color: #991b1b; font-weight: bold; text-transform: uppercase;">Terlambat</div>' +
+            '<div style="font-size: 16px; font-weight: bold; color: #dc2626;">' + ringkasanLambatVal + ' <span style="font-size: 11px; font-weight: normal; color: #64748b;">(' + (ringkasanHadirVal > 0 ? ((ringkasanLambatVal / ringkasanHadirVal) * 100).toFixed(1) : 0) + '%)</span></div>' +
+          '</td>' +
+        '</tr>' +
+      '</table>' +
+    '</div>';
+
+    // Tabel Ringkasan Persentase Guru (jika seluruh guru)
+    var tabelPersenPerGuruHtml = '';
+    if (!isFilteredSingleGuru && statObj.perGuruStats.length > 0) {
+      var rowsGuruPersenHtml = '';
+      statObj.perGuruStats.forEach(function(t, idx) {
+        var badgeColor = t.persenHadir >= 90 ? '#15803d' : (t.persenHadir >= 75 ? '#d97706' : '#dc2626');
+        var badgeBg = t.persenHadir >= 90 ? '#dcfce7' : (t.persenHadir >= 75 ? '#fef3c7' : '#fee2e2');
+        rowsGuruPersenHtml += '<tr>' +
+          '<td style="text-align: center;">' + (idx + 1) + '</td>' +
+          '<td><strong>' + t.nama_guru + '</strong></td>' +
+          '<td style="text-align: center;">' + t.totalHadir + ' / ' + statObj.totalHariEfektif + ' Hari</td>' +
+          '<td style="text-align: center; color: #16a34a; font-weight: 600;">' + t.tepatCount + '</td>' +
+          '<td style="text-align: center; color: #dc2626; font-weight: 600;">' + t.lambatCount + '</td>' +
+          '<td style="text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-weight: bold; font-size: 11px; background: ' + badgeBg + '; color: ' + badgeColor + ';">' + t.persenHadir + '%</span></td>' +
+        '</tr>';
+      });
+
+      tabelPersenPerGuruHtml = '<div style="margin-top: 15px; margin-bottom: 25px;">' +
+        '<div style="font-size: 12px; font-weight: bold; color: #065f46; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">1. Ringkasan Persentase Kehadiran Per Guru / Karyawan</div>' +
+        '<table>' +
+          '<thead>' +
+            '<tr>' +
+              '<th style="width: 35px;">No</th>' +
+              '<th>Nama Guru / Karyawan</th>' +
+              '<th style="width: 140px;">Hari Hadir / Efektif</th>' +
+              '<th style="width: 100px;">Tepat Waktu</th>' +
+              '<th style="width: 100px;">Terlambat</th>' +
+              '<th style="width: 120px;">Persentase</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' + rowsGuruPersenHtml + '</tbody>' +
+        '</table>' +
+      '</div>';
+    }
     
     var rowsHtml = '';
     data.forEach(function(r, idx) {
@@ -745,6 +1028,9 @@ function downloadRekapPdf() {
       '<div class="judul-laporan">Laporan Rekapitulasi Presensi Kehadiran</div>' +
       '<div class="sub-judul">' + subJudul + '</div>' +
       '<div class="tgl-cetak">Waktu Cetak: ' + tglCetak + '</div>' +
+      ringkasanBoxHtml +
+      tabelPersenPerGuruHtml +
+      '<div style="font-size: 12px; font-weight: bold; color: #065f46; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">' + (isFilteredSingleGuru ? 'Detail Riwayat Presensi' : '2. Detail Riwayat Presensi Lengkap') + '</div>' +
       '<table>' +
         '<thead>' +
           '<tr>' +
@@ -861,8 +1147,45 @@ function downloadRekapCsv() {
       ws['!cols'] = colWidths;
 
       var wb = XLSX.utils.book_new();
-      var sheetName = selectedGuruName ? selectedGuruName.slice(0, 30) : 'Rekap Kehadiran';
+      var sheetName = selectedGuruName ? selectedGuruName.slice(0, 30) : 'Log Presensi';
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+      // Tambahkan Sheet 2: Ringkasan Persentase Kehadiran Per Guru & Seluruh Guru
+      var statObj = calculatePerGuruStats(data, cachedGuruList);
+      var rowsPersen = statObj.perGuruStats.map(function(t, idx) {
+        return {
+          'No': idx + 1,
+          'Nama Guru / Karyawan': t.nama_guru,
+          'Hari Hadir': t.totalHadir,
+          'Total Hari Efektif': statObj.totalHariEfektif,
+          'Tepat Waktu': t.tepatCount,
+          'Terlambat': t.lambatCount,
+          'Persentase Kehadiran': t.persenHadir + '%'
+        };
+      });
+      // Baris total kolektif
+      rowsPersen.push({
+        'No': '',
+        'Nama Guru / Karyawan': 'TOTAL KOLEKTIF',
+        'Hari Hadir': statObj.totalAktualHadir,
+        'Total Hari Efektif': statObj.totalTargetSesi,
+        'Tepat Waktu': statObj.totalTepat,
+        'Terlambat': statObj.totalLambat,
+        'Persentase Kehadiran': statObj.persenKolektif + '%'
+      });
+
+      var wsPersen = XLSX.utils.json_to_sheet(rowsPersen);
+      wsPersen['!cols'] = [
+        { wch: 6 },   // No
+        { wch: 32 },  // Nama Guru
+        { wch: 14 },  // Hari Hadir
+        { wch: 18 },  // Total Hari Efektif
+        { wch: 14 },  // Tepat Waktu
+        { wch: 14 },  // Terlambat
+        { wch: 22 }   // Persentase
+      ];
+      XLSX.utils.book_append_sheet(wb, wsPersen, 'Persentase Kehadiran');
+
       XLSX.writeFile(wb, namaFileDownload + '.xlsx');
 
       showNotif('Unduh Berhasil', 'Berkas Excel (.xlsx) ' + (selectedGuruName ? 'untuk ' + selectedGuruName : 'semua guru') + ' berhasil diunduh.', true);
