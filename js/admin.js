@@ -1267,9 +1267,46 @@ function downloadRekapPdf() {
       return;
     }
 
+    var selRange = document.getElementById('filterRange');
+    var currentRange = (selRange && selRange.value) ? selRange.value : (stateAdmin.range || 'bulanan');
+
+    var namaBulanIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    var hariNamaIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    var now = new Date();
+
+    function formatTglIndo(d) {
+      var tgl = ('0' + d.getDate()).slice(-2);
+      return tgl + ' ' + namaBulanIndo[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    var labelPeriodeRekap = '';
+    var rangeFileSlug = currentRange;
+    if (currentRange === 'pekanan') {
+      var day = now.getDay();
+      var diff = (day + 6) % 7;
+      var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff);
+      var friday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 4);
+      labelPeriodeRekap = 'Rekapan Mingguan: ' + formatTglIndo(monday) + ' – ' + formatTglIndo(friday);
+      rangeFileSlug = 'Mingguan_' + formatTglIndo(monday).replace(/\s+/g, '_') + '_sd_' + formatTglIndo(friday).replace(/\s+/g, '_');
+    } else if (currentRange === 'bulanan') {
+      var firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      var lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      labelPeriodeRekap = 'Rekapan Bulanan: ' + formatTglIndo(firstDay) + ' – ' + formatTglIndo(lastDay);
+      rangeFileSlug = 'Bulanan_' + namaBulanIndo[now.getMonth()] + '_' + now.getFullYear();
+    } else if (currentRange === 'tahunan') {
+      labelPeriodeRekap = 'Rekapan Tahunan: 01 Januari ' + now.getFullYear() + ' – 31 Desember ' + now.getFullYear();
+      rangeFileSlug = 'Tahunan_' + now.getFullYear();
+    } else if (currentRange === 'today') {
+      labelPeriodeRekap = 'Rekapan Harian: ' + hariNamaIndo[now.getDay()] + ', ' + formatTglIndo(now);
+      rangeFileSlug = 'Harian_' + formatTglIndo(now).replace(/\s+/g, '_');
+    } else {
+      labelPeriodeRekap = 'Rekapan Seluruh Data Presensi';
+      rangeFileSlug = 'Semua_Data';
+    }
+
     var namaGuruClean = selectedGuruName ? selectedGuruName.replace(/[^a-zA-Z0-9]/g, '_') : 'Semua_Guru';
     var tglFile = new Date().toISOString().slice(0, 10);
-    var namaFileDownload = 'Rekap_Presensi_' + namaGuruClean + '_' + tglFile;
+    var namaFileDownload = 'Rekap_Presensi_' + namaGuruClean + '_' + rangeFileSlug;
 
     var tglCetak = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     var subJudul = selectedGuruName ? 'Nama Guru: ' + selectedGuruName : 'Seluruh Guru & Karyawan';
@@ -1375,8 +1412,17 @@ function downloadRekapPdf() {
       '</div>';
     }
     
+    // Filter baris detail berdasarkan rentang waktu yang sedang dipilih
+    var displayData = data;
+    if (currentRange && currentRange !== 'all') {
+      var inRangeData = filterRecordsByRange(data, currentRange);
+      if (inRangeData && inRangeData.length > 0) {
+        displayData = inRangeData;
+      }
+    }
+
     var rowsHtml = '';
-    data.forEach(function(r, idx) {
+    displayData.forEach(function(r, idx) {
       var jamM = r.jam_masuk ? (r.jam_masuk + ' (' + (r.status_masuk || 'Tepat Waktu') + ')') : '--:--';
       var jamP = r.jam_pulang ? (r.jam_pulang + ' (' + (r.status_pulang || 'Tepat Waktu') + ')') : '--:--';
       var ket = r.alasan_masuk || r.alasan_pulang || '-';
@@ -1390,18 +1436,39 @@ function downloadRekapPdf() {
         '<td>' + ket + '</td>' +
       '</tr>';
     });
+    if (displayData.length === 0) {
+      rowsHtml = '<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 10px;">Tidak ada riwayat presensi pada periode ini.</td></tr>';
+    }
 
-    var bodyContentHtml = '<div class="kop">' +
-        '<h2>SMA ISLAM DAARUL ILMI DEPOK</h2>' +
-        '<h3>SISTEM INFORMASI PRESENSI GURU & KARYAWAN</h3>' +
-        '<p>Kota Depok, Jawa Barat | Email: info@daarulilmi.sch.id</p>' +
-      '</div>' +
-      '<div class="judul-laporan">Laporan Rekapitulasi Presensi Kehadiran</div>' +
-      '<div class="sub-judul">' + subJudul + '</div>' +
-      '<div class="tgl-cetak">Waktu Cetak: ' + tglCetak + '</div>' +
+    var logoImgSrc = (typeof DAARUL_ILMI_LOGO_BASE64 !== 'undefined' && DAARUL_ILMI_LOGO_BASE64) ? DAARUL_ILMI_LOGO_BASE64 : 'img/logo.jpg';
+
+    var kopSuratHtml = '<div class="kop" style="margin-bottom: 12px; page-break-inside: avoid; page-break-after: avoid;">' +
+      '<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 4px; background: transparent;">' +
+        '<tr style="border: none; background: transparent;">' +
+          '<td style="width: 95px; min-width: 95px; max-width: 95px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: center;">' +
+            '<img src="' + logoImgSrc + '" alt="Logo SMA Islam Daarul Ilmi Depok" style="width: 82px; height: 82px; object-fit: contain; display: block; margin: 0 auto;">' +
+          '</td>' +
+          '<td style="border: none; padding: 0; vertical-align: middle; text-align: center; font-family: \'Times New Roman\', Times, serif; color: #000000;">' +
+            '<div style="font-size: 16px; font-weight: bold; letter-spacing: 0.8px; line-height: 1.25; text-transform: uppercase;">SEKOLAH MENENGAH ATAS (SMA)</div>' +
+            '<div style="font-size: 21px; font-weight: bold; letter-spacing: 1px; line-height: 1.25; text-transform: uppercase; margin-top: 2px;">ISLAM DAARUL ILMI DEPOK</div>' +
+            '<div style="font-size: 11px; font-weight: bold; line-height: 1.35; margin-top: 3px;">Kampung Parung Serab RT/RW: 007/003 Kel. Tirtajaya Kec. Sukmajaya</div>' +
+            '<div style="font-size: 11px; font-weight: bold; line-height: 1.35;">Kota Depok, Provinsi Jawa Barat 16412</div>' +
+            '<div style="font-size: 11px; font-weight: bold; line-height: 1.35;">Telp. 0821 1131 3536/ 0821 38 2525 73 (Admin)</div>' +
+          '</td>' +
+          '<td style="width: 95px; min-width: 95px; max-width: 95px; border: none; padding: 0;"></td>' +
+        '</tr>' +
+      '</table>' +
+      '<div style="border-top: 2.5px solid #000000; border-bottom: 1px solid #000000; height: 3.5px; margin-top: 6px; margin-bottom: 12px;"></div>' +
+    '</div>';
+
+    var bodyContentHtml = kopSuratHtml +
+      '<div class="judul-laporan" style="text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a; page-break-inside: avoid; page-break-after: avoid;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
+      '<div class="sub-judul" style="text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px; page-break-inside: avoid; page-break-after: avoid;">' + subJudul + '</div>' +
+      '<div class="sub-periode" style="text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px; page-break-inside: avoid; page-break-after: avoid;">' + labelPeriodeRekap + '</div>' +
+      '<div class="tgl-cetak" style="text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px; page-break-inside: avoid; page-break-after: avoid;">Waktu Cetak: ' + tglCetak + '</div>' +
       ringkasanBoxHtml +
       tabelPersenPerGuruHtml +
-      '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; page-break-inside: avoid; page-break-after: avoid;">' + (isFilteredSingleGuru ? 'Detail Riwayat Presensi' : '2. Detail Riwayat Presensi Lengkap') + '</div>' +
+      '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; page-break-inside: avoid; page-break-after: avoid;">' + (isFilteredSingleGuru ? ('Detail Riwayat Presensi (' + labelPeriodeRekap + ')') : ('2. Detail Riwayat Presensi Lengkap (' + labelPeriodeRekap + ')')) + '</div>' +
       '<table>' +
         '<thead>' +
           '<tr>' +
@@ -1434,12 +1501,10 @@ function downloadRekapPdf() {
       '<html lang="id"><head><meta charset="UTF-8"><title>' + namaFileDownload + '</title>' +
       '<style>' +
       'body { font-family: "Segoe UI", Arial, sans-serif; padding: 25px; color: #1e293b; line-height: 1.4; }' +
-      '.kop { border-bottom: 3px double #065f46; padding-bottom: 10px; margin-bottom: 14px; text-align: center; }' +
-      '.kop h2 { margin: 0; font-size: 20px; color: #065f46; letter-spacing: 0.5px; }' +
-      '.kop h3 { margin: 4px 0 0 0; font-size: 13px; font-weight: 600; color: #334155; }' +
-      '.kop p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; }' +
-      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 12px 0 2px 0; letter-spacing: 0.8px; color: #0f172a; }' +
-      '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 4px; }' +
+      '.kop { margin-bottom: 14px; text-align: center; }' +
+      '.judul-laporan { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 10px 0 2px 0; letter-spacing: 0.8px; color: #0f172a; }' +
+      '.sub-judul { text-align: center; font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 2px; }' +
+      '.sub-periode { text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px; }' +
       '.tgl-cetak { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 14px; }' +
       'table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 20px; }' +
       'th, td { border: 1px solid #cbd5e1; padding: 6px 8px; }' +
@@ -1461,12 +1526,10 @@ function downloadRekapPdf() {
       var fullHtmlToRender = '<div style="width: 1060px; min-width: 1060px; max-width: 1060px; margin: 0 auto; font-family: \'Segoe UI\', Arial, sans-serif; color: #1e293b; background: #ffffff; padding: 10px 14px;">' +
         '<style>' +
         '* { box-sizing: border-box; }' +
-        '.kop { border-bottom: 3px double #065f46; padding-bottom: 8px; margin-bottom: 12px; text-align: center; page-break-inside: avoid; page-break-after: avoid; }' +
-        '.kop h2 { margin: 0; font-size: 18px; color: #065f46; letter-spacing: 0.5px; }' +
-        '.kop h3 { margin: 3px 0 0 0; font-size: 12px; font-weight: 600; color: #334155; }' +
-        '.kop p { margin: 2px 0 0 0; font-size: 10px; color: #64748b; }' +
-        '.judul-laporan { text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 8px 0 2px 0; color: #0f172a; page-break-inside: avoid; page-break-after: avoid; }' +
-        '.sub-judul { text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 3px; page-break-inside: avoid; page-break-after: avoid; }' +
+        '.kop { margin-bottom: 12px; page-break-inside: avoid; page-break-after: avoid; }' +
+        '.judul-laporan { text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a; page-break-inside: avoid; page-break-after: avoid; }' +
+        '.sub-judul { text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px; page-break-inside: avoid; page-break-after: avoid; }' +
+        '.sub-periode { text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px; page-break-inside: avoid; page-break-after: avoid; }' +
         '.tgl-cetak { text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px; page-break-inside: avoid; page-break-after: avoid; }' +
         '.box-komparasi { background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; page-break-inside: avoid; }' +
         'table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 16px; page-break-inside: auto; }' +
@@ -1544,13 +1607,24 @@ function downloadRekapCsv() {
       return;
     }
 
+    var selRange = document.getElementById('filterRange');
+    var currentRange = (selRange && selRange.value) ? selRange.value : (stateAdmin.range || 'bulanan');
+
     var namaGuruClean = selectedGuruName ? selectedGuruName.replace(/[^a-zA-Z0-9]/g, '_') : 'Semua_Guru';
     var tglFile = new Date().toISOString().slice(0, 10);
-    var namaFileDownload = 'Rekap_Presensi_' + namaGuruClean + '_' + tglFile;
+    var namaFileDownload = 'Rekap_Presensi_' + namaGuruClean + '_' + currentRange + '_' + tglFile;
+
+    var displayData = data;
+    if (currentRange && currentRange !== 'all') {
+      var inRangeData = filterRecordsByRange(data, currentRange);
+      if (inRangeData && inRangeData.length > 0) {
+        displayData = inRangeData;
+      }
+    }
 
     // OPSI 1: Format Asli Microsoft Excel (.xlsx) dengan SheetJS (Rapi per kolom)
     if (window.XLSX && XLSX.utils) {
-      var rowsFormatted = data.map(function(r, idx) {
+      var rowsFormatted = displayData.map(function(r, idx) {
         return {
           'No': idx + 1,
           'ID Absensi': r.id_absen || '',
