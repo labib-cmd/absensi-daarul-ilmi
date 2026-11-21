@@ -1350,21 +1350,21 @@ function downloadRekapPdf() {
       }
     }
 
-    var ringkasanBoxHtml = '<div class="box-komparasi" style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; page-break-inside: avoid;">' +
-      '<div style="font-size: 10px; font-weight: bold; color: #166534; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Komparasi Persentase Kehadiran Berdasarkan Periode</div>' +
-      '<table style="width: 100%; border: none; margin: 0; font-size: 10px;">' +
+    var ringkasanBoxHtml = '<div class="box-komparasi" style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-radius: 6px; padding: 6px 12px; margin-bottom: 8px; page-break-inside: avoid;">' +
+      '<div style="font-size: 9.5px; font-weight: bold; color: #166534; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">Komparasi Persentase Kehadiran Berdasarkan Periode</div>' +
+      '<table style="width: 100%; border: none; margin: 0; font-size: 9.5px;">' +
         '<tr style="background: transparent;">' +
-          '<td style="border: none; padding: 3px; vertical-align: top; width: 33.3%;">' +
-            '<div style="font-size: 9px; color: #166534; font-weight: bold; text-transform: uppercase;">1. Minggu Ini (Pekanan)</div>' +
-            '<div style="font-size: 15px; font-weight: bold; color: #15803d;">' + pMinggu + '% <span style="font-size: 10px; font-weight: normal; color: #64748b;">(' + rMinggu + ')</span></div>' +
+          '<td style="border: none; padding: 2px 4px; vertical-align: top; width: 33.3%;">' +
+            '<div style="font-size: 8.5px; color: #166534; font-weight: bold; text-transform: uppercase;">1. Minggu Ini (Pekanan)</div>' +
+            '<div style="font-size: 14px; font-weight: bold; color: #15803d;">' + pMinggu + '% <span style="font-size: 9px; font-weight: normal; color: #64748b;">(' + rMinggu + ')</span></div>' +
           '</td>' +
-          '<td style="border: none; padding: 3px; vertical-align: top; width: 33.3%;">' +
-            '<div style="font-size: 9px; color: #0f766e; font-weight: bold; text-transform: uppercase;">2. Bulan Ini (Bulanan)</div>' +
-            '<div style="font-size: 15px; font-weight: bold; color: #0f766e;">' + pBulan + '% <span style="font-size: 10px; font-weight: normal; color: #64748b;">(' + rBulan + ')</span></div>' +
+          '<td style="border: none; padding: 2px 4px; vertical-align: top; width: 33.3%;">' +
+            '<div style="font-size: 8.5px; color: #0f766e; font-weight: bold; text-transform: uppercase;">2. Bulan Ini (Bulanan)</div>' +
+            '<div style="font-size: 14px; font-weight: bold; color: #0f766e;">' + pBulan + '% <span style="font-size: 9px; font-weight: normal; color: #64748b;">(' + rBulan + ')</span></div>' +
           '</td>' +
-          '<td style="border: none; padding: 3px; vertical-align: top; width: 33.3%;">' +
-            '<div style="font-size: 9px; color: #4338ca; font-weight: bold; text-transform: uppercase;">3. Tahun Ini (Tahunan)</div>' +
-            '<div style="font-size: 15px; font-weight: bold; color: #4338ca;">' + pTahun + '% <span style="font-size: 10px; font-weight: normal; color: #64748b;">(' + rTahun + ')</span></div>' +
+          '<td style="border: none; padding: 2px 4px; vertical-align: top; width: 33.3%;">' +
+            '<div style="font-size: 8.5px; color: #4338ca; font-weight: bold; text-transform: uppercase;">3. Tahun Ini (Tahunan)</div>' +
+            '<div style="font-size: 14px; font-weight: bold; color: #4338ca;">' + pTahun + '% <span style="font-size: 9px; font-weight: normal; color: #64748b;">(' + rTahun + ')</span></div>' +
           '</td>' +
         '</tr>' +
       '</table>' +
@@ -1378,35 +1378,35 @@ function downloadRekapPdf() {
         function getBadgeStyle(pct) {
           var bg = pct >= 85 ? '#dcfce7' : (pct >= 60 ? '#fef3c7' : '#fee2e2');
           var col = pct >= 85 ? '#15803d' : (pct >= 60 ? '#b45309' : '#dc2626');
-          return 'display: inline-block; padding: 2px 7px; border-radius: 9999px; font-weight: bold; font-size: 9px; background: ' + bg + '; color: ' + col + ';';
+          return 'display: inline-block; padding: 1.5px 6px; border-radius: 9999px; font-weight: bold; font-size: 8.5px; background: ' + bg + '; color: ' + col + ';';
         }
 
         function formatGuruCol(p) {
           var detail = p.totalHadir + '/' + p.hariEfektif;
           if (p.totalIzin > 0) detail += ', ' + p.totalIzin + ' Izin';
           if (p.totalTidakHadir > 0) detail += ', ' + p.totalTidakHadir + ' Alpa';
-          return '<span style="' + getBadgeStyle(p.persenHadir) + '">' + p.persenHadir + '%</span> <span style="color: #64748b; font-size: 9px;">(' + detail + ')</span>';
+          return '<span style="' + getBadgeStyle(p.persenHadir) + '">' + p.persenHadir + '%</span> <span style="color: #64748b; font-size: 8.5px;">(' + detail + ')</span>';
         }
 
         rowsGuruPersenHtml += '<tr>' +
-          '<td style="text-align: center;">' + (idx + 1) + '</td>' +
-          '<td><strong>' + t.nama_guru + '</strong></td>' +
-          '<td style="text-align: center;">' + formatGuruCol(t.minggu) + '</td>' +
-          '<td style="text-align: center;">' + formatGuruCol(t.bulan) + '</td>' +
-          '<td style="text-align: center;">' + formatGuruCol(t.tahun) + '</td>' +
+          '<td style="text-align: center; padding: 2.5px 4px;">' + (idx + 1) + '</td>' +
+          '<td style="padding: 2.5px 6px;"><strong>' + t.nama_guru + '</strong></td>' +
+          '<td style="text-align: center; padding: 2.5px 4px;">' + formatGuruCol(t.minggu) + '</td>' +
+          '<td style="text-align: center; padding: 2.5px 4px;">' + formatGuruCol(t.bulan) + '</td>' +
+          '<td style="text-align: center; padding: 2.5px 4px;">' + formatGuruCol(t.tahun) + '</td>' +
         '</tr>';
       });
 
-      tabelPersenPerGuruHtml = '<div style="margin-top: 10px; margin-bottom: 18px; page-break-inside: auto;">' +
-        '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; page-break-inside: avoid; page-break-after: avoid;">1. Ringkasan Persentase Kehadiran Per Guru (Mingguan, Bulanan, Tahunan)</div>' +
+      tabelPersenPerGuruHtml = '<div style="margin-top: 6px; margin-bottom: 8px; page-break-inside: avoid;">' +
+        '<div style="font-size: 10px; font-weight: bold; color: #065f46; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">1. Ringkasan Persentase Kehadiran Per Guru (Mingguan, Bulanan, Tahunan)</div>' +
         '<table>' +
           '<thead>' +
             '<tr>' +
-              '<th style="width: 35px; text-align: center;">No</th>' +
-              '<th>Nama Guru / Karyawan</th>' +
-              '<th style="width: 140px; text-align: center;">Minggu Ini</th>' +
-              '<th style="width: 140px; text-align: center;">Bulan Ini</th>' +
-              '<th style="width: 140px; text-align: center;">Tahun Ini</th>' +
+              '<th style="width: 35px; text-align: center; padding: 3px 4px;">No</th>' +
+              '<th style="padding: 3px 6px;">Nama Guru / Karyawan</th>' +
+              '<th style="width: 140px; text-align: center; padding: 3px 4px;">Minggu Ini</th>' +
+              '<th style="width: 140px; text-align: center; padding: 3px 4px;">Bulan Ini</th>' +
+              '<th style="width: 140px; text-align: center; padding: 3px 4px;">Tahun Ini</th>' +
             '</tr>' +
           '</thead>' +
           '<tbody>' + rowsGuruPersenHtml + '</tbody>' +
@@ -1425,36 +1425,36 @@ function downloadRekapPdf() {
 
     var logoImgSrc = (typeof DAARUL_ILMI_LOGO_BASE64 !== 'undefined' && DAARUL_ILMI_LOGO_BASE64) ? DAARUL_ILMI_LOGO_BASE64 : 'img/logo.jpg';
 
-    var kopSuratHtml = '<div class="kop" style="margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid;">' +
-      '<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 4px; background: transparent;">' +
+    var kopSuratHtml = '<div class="kop" style="margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid;">' +
+      '<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 2px; background: transparent;">' +
         '<tr style="border: none; background: transparent;">' +
-          '<td style="width: 95px; min-width: 95px; max-width: 95px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: center;">' +
-            '<img src="' + logoImgSrc + '" width="82" height="82" alt="Logo SMA Islam Daarul Ilmi Depok" style="width: 82px; height: 82px; object-fit: contain; display: block; margin: 0 auto;">' +
+          '<td style="width: 85px; min-width: 85px; max-width: 85px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: center;">' +
+            '<img src="' + logoImgSrc + '" width="72" height="72" alt="Logo SMA Islam Daarul Ilmi Depok" style="width: 72px; height: 72px; object-fit: contain; display: block; margin: 0 auto;">' +
           '</td>' +
           '<td style="border: none; padding: 0; vertical-align: middle; text-align: center; font-family: \'Times New Roman\', Times, serif; color: #000000;">' +
-            '<div style="font-size: 16px; font-weight: bold; letter-spacing: 0.8px; line-height: 1.25; text-transform: uppercase;">SEKOLAH MENENGAH ATAS (SMA)</div>' +
-            '<div style="font-size: 21px; font-weight: bold; letter-spacing: 1px; line-height: 1.25; text-transform: uppercase; margin-top: 2px;">ISLAM DAARUL ILMI DEPOK</div>' +
-            '<div style="font-size: 11px; font-weight: bold; line-height: 1.35; margin-top: 3px;">Kampung Parung Serab RT/RW: 007/003 Kel. Tirtajaya Kec. Sukmajaya</div>' +
-            '<div style="font-size: 11px; font-weight: bold; line-height: 1.35;">Kota Depok, Provinsi Jawa Barat 16412</div>' +
-            '<div style="font-size: 11px; font-weight: bold; line-height: 1.35;">Telp. 0821 1131 3536/ 0821 38 2525 73 (Admin)</div>' +
+            '<div style="font-size: 15px; font-weight: bold; letter-spacing: 0.8px; line-height: 1.2; text-transform: uppercase;">SEKOLAH MENENGAH ATAS (SMA)</div>' +
+            '<div style="font-size: 19px; font-weight: bold; letter-spacing: 1px; line-height: 1.2; text-transform: uppercase; margin-top: 2px;">ISLAM DAARUL ILMI DEPOK</div>' +
+            '<div style="font-size: 10px; font-weight: bold; line-height: 1.3; margin-top: 2px;">Kampung Parung Serab RT/RW: 007/003 Kel. Tirtajaya Kec. Sukmajaya</div>' +
+            '<div style="font-size: 10px; font-weight: bold; line-height: 1.3;">Kota Depok, Provinsi Jawa Barat 16412</div>' +
+            '<div style="font-size: 10px; font-weight: bold; line-height: 1.3;">Telp. 0821 1131 3536/ 0821 38 2525 73 (Admin)</div>' +
           '</td>' +
-          '<td style="width: 95px; min-width: 95px; max-width: 95px; border: none; padding: 0;"></td>' +
+          '<td style="width: 85px; min-width: 85px; max-width: 85px; border: none; padding: 0;"></td>' +
         '</tr>' +
       '</table>' +
-      '<div style="border-top: 2.5px solid #000000; border-bottom: 1px solid #000000; height: 3.5px; margin-top: 6px; margin-bottom: 12px;"></div>' +
+      '<div style="border-top: 2.5px solid #000000; border-bottom: 1px solid #000000; height: 3px; margin-top: 4px; margin-bottom: 8px;"></div>' +
     '</div>';
 
-    var ttdHtml = '<div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 11px; page-break-inside: avoid; break-inside: avoid;">' +
+    var ttdHtml = '<div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 10px; page-break-inside: avoid; break-inside: avoid;">' +
       '<div class="ttd-box" style="width: 220px; text-align: center;">' +
         '<p style="margin: 0;">Mengetahui,</p>' +
-        '<p style="margin: 3px 0 0 0;"><strong>Kepala Sekolah</strong></p>' +
-        '<div class="ttd-space" style="height: 45px;"></div>' +
+        '<p style="margin: 2px 0 0 0;"><strong>Kepala Sekolah</strong></p>' +
+        '<div class="ttd-space" style="height: 38px;"></div>' +
         '<p style="margin: 0;"><strong>( ........................................ )</strong></p>' +
       '</div>' +
       '<div class="ttd-box" style="width: 220px; text-align: center;">' +
         '<p style="margin: 0;">Depok, ' + (tglCetak.indexOf(',') !== -1 ? tglCetak.split(',')[1].trim() : tglCetak) + '</p>' +
-        '<p style="margin: 3px 0 0 0;"><strong>Bagian Tata Usaha</strong></p>' +
-        '<div class="ttd-space" style="height: 45px;"></div>' +
+        '<p style="margin: 2px 0 0 0;"><strong>Bagian Tata Usaha</strong></p>' +
+        '<div class="ttd-space" style="height: 38px;"></div>' +
         '<p style="margin: 0;"><strong>( ........................................ )</strong></p>' +
       '</div>' +
     '</div>';
@@ -1465,36 +1465,36 @@ function downloadRekapPdf() {
       var ket = r.alasan_masuk || r.alasan_pulang || '-';
 
       return '<tr style="page-break-inside: avoid; break-inside: avoid;">' +
-        '<td style="text-align: center;">' + no + '</td>' +
-        '<td><strong>' + (r.nama_guru || '-') + '</strong></td>' +
-        '<td style="text-align: center;">' + (r.tanggal || '-') + '</td>' +
-        '<td style="text-align: center;">' + jamM + '</td>' +
-        '<td style="text-align: center;">' + jamP + '</td>' +
-        '<td>' + ket + '</td>' +
+        '<td style="text-align: center; padding: 3px 4px;">' + no + '</td>' +
+        '<td style="padding: 3px 6px;"><strong>' + (r.nama_guru || '-') + '</strong></td>' +
+        '<td style="text-align: center; padding: 3px 4px;">' + (r.tanggal || '-') + '</td>' +
+        '<td style="text-align: center; padding: 3px 4px;">' + jamM + '</td>' +
+        '<td style="text-align: center; padding: 3px 4px;">' + jamP + '</td>' +
+        '<td style="padding: 3px 6px;">' + ket + '</td>' +
       '</tr>';
     }
 
     var tableHeaderHtml = '<thead>' +
       '<tr>' +
-        '<th style="width: 35px; text-align: center;">No</th>' +
-        '<th style="width: 190px; text-align: left;">Nama Guru / Karyawan</th>' +
-        '<th style="width: 85px; text-align: center;">Tanggal</th>' +
-        '<th style="width: 140px; text-align: center;">Presensi Datang</th>' +
-        '<th style="width: 140px; text-align: center;">Presensi Pulang</th>' +
-        '<th style="text-align: left;">Keterangan / Alasan</th>' +
+        '<th style="width: 35px; text-align: center; padding: 3.5px 4px;">No</th>' +
+        '<th style="width: 190px; text-align: left; padding: 3.5px 6px;">Nama Guru / Karyawan</th>' +
+        '<th style="width: 85px; text-align: center; padding: 3.5px 4px;">Tanggal</th>' +
+        '<th style="width: 140px; text-align: center; padding: 3.5px 4px;">Presensi Datang</th>' +
+        '<th style="width: 140px; text-align: center; padding: 3.5px 4px;">Presensi Pulang</th>' +
+        '<th style="text-align: left; padding: 3.5px 6px;">Keterangan / Alasan</th>' +
       '</tr>' +
     '</thead>';
 
     var pagesHtmlList = [];
-    var CHUNK_SIZE = 14;
+    var CHUNK_SIZE = 22;
 
     if (!isFilteredSingleGuru) {
       // Halaman 1: Ringkasan Eksekutif & Komparasi 3 Periode + Tabel 1 (Ringkasan Persentase Guru)
       var page1Content = kopSuratHtml +
-        '<div class="judul-laporan" style="text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
-        '<div class="sub-judul" style="text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px;">' + subJudul + '</div>' +
-        '<div class="sub-periode" style="text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px;">' + labelPeriodeRekap + '</div>' +
-        '<div class="tgl-cetak" style="text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px;">Waktu Cetak: ' + tglCetak + '</div>' +
+        '<div class="judul-laporan" style="text-align: center; font-size: 12px; font-weight: bold; text-transform: uppercase; margin: 4px 0 2px 0; color: #0f172a;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
+        '<div class="sub-judul" style="text-align: center; font-size: 10.5px; font-weight: 600; color: #065f46; margin-bottom: 2px;">' + subJudul + '</div>' +
+        '<div class="sub-periode" style="text-align: center; font-size: 10px; font-weight: bold; color: #047857; margin-bottom: 2px;">' + labelPeriodeRekap + '</div>' +
+        '<div class="tgl-cetak" style="text-align: center; font-size: 9px; color: #64748b; margin-bottom: 8px;">Waktu Cetak: ' + tglCetak + '</div>' +
         ringkasanBoxHtml +
         tabelPersenPerGuruHtml;
 
@@ -1504,10 +1504,10 @@ function downloadRekapPdf() {
       } else {
         var totalDetailPages = Math.ceil(displayData.length / CHUNK_SIZE);
         var totalAllPages = 1 + totalDetailPages;
-        page1Content += '<div style="text-align: right; font-size: 10px; color: #64748b; font-style: italic; margin-top: 8px;">* Detail riwayat presensi tercantum pada halaman berikutnya (Halaman 1 dari ' + totalAllPages + ') &rarr;</div>';
+        page1Content += '<div style="text-align: right; font-size: 9.5px; color: #64748b; font-style: italic; margin-top: 6px;">* Detail riwayat presensi tercantum pada halaman berikutnya (Halaman 1 dari ' + totalAllPages + ') &rarr;</div>';
         pagesHtmlList.push(page1Content);
 
-        // Halaman 2, 3, dst.: Log Presensi Terperinci
+        // Halaman 2, 3, dst.: Log Presensi Terperinci (Penuh Sehalaman)
         for (var c = 0; c < totalDetailPages; c++) {
           var chunkRows = displayData.slice(c * CHUNK_SIZE, (c + 1) * CHUNK_SIZE);
           var currentPageNum = c + 2;
@@ -1519,9 +1519,9 @@ function downloadRekapPdf() {
             chunkHtml += renderDetailRow(chunkRows[rIdx], globalNo);
           }
 
-          var pageDetailContent = '<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #065f46; padding-bottom: 4px; margin-bottom: 10px;">' +
-              '<span style="font-size: 11px; font-weight: bold; color: #065f46; text-transform: uppercase;">2. Detail Riwayat Presensi Lengkap (' + labelPeriodeRekap + ')</span>' +
-              '<span style="font-size: 10px; font-weight: 600; color: #64748b;">Halaman ' + currentPageNum + ' dari ' + totalAllPages + '</span>' +
+          var pageDetailContent = '<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #065f46; padding-bottom: 4px; margin-bottom: 8px;">' +
+              '<span style="font-size: 10.5px; font-weight: bold; color: #065f46; text-transform: uppercase;">2. Detail Riwayat Presensi Lengkap (' + labelPeriodeRekap + ')</span>' +
+              '<span style="font-size: 9.5px; font-weight: 600; color: #64748b;">Halaman ' + currentPageNum + ' dari ' + totalAllPages + '</span>' +
             '</div>' +
             '<table>' + tableHeaderHtml + '<tbody>' + chunkHtml + '</tbody></table>';
 
@@ -1533,14 +1533,14 @@ function downloadRekapPdf() {
       }
     } else {
       // Guru Tunggal
-      if (!displayData || displayData.length <= 8) {
+      if (!displayData || displayData.length <= 14) {
         var page1Content = kopSuratHtml +
-          '<div class="judul-laporan" style="text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
-          '<div class="sub-judul" style="text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px;">' + subJudul + '</div>' +
-          '<div class="sub-periode" style="text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px;">' + labelPeriodeRekap + '</div>' +
-          '<div class="tgl-cetak" style="text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px;">Waktu Cetak: ' + tglCetak + '</div>' +
+          '<div class="judul-laporan" style="text-align: center; font-size: 12px; font-weight: bold; text-transform: uppercase; margin: 4px 0 2px 0; color: #0f172a;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
+          '<div class="sub-judul" style="text-align: center; font-size: 10.5px; font-weight: 600; color: #065f46; margin-bottom: 2px;">' + subJudul + '</div>' +
+          '<div class="sub-periode" style="text-align: center; font-size: 10px; font-weight: bold; color: #047857; margin-bottom: 2px;">' + labelPeriodeRekap + '</div>' +
+          '<div class="tgl-cetak" style="text-align: center; font-size: 9px; color: #64748b; margin-bottom: 8px;">Waktu Cetak: ' + tglCetak + '</div>' +
           ringkasanBoxHtml +
-          '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase;">Detail Riwayat Presensi (' + labelPeriodeRekap + ')</div>';
+          '<div style="font-size: 10px; font-weight: bold; color: #065f46; margin-bottom: 4px; text-transform: uppercase;">Detail Riwayat Presensi (' + labelPeriodeRekap + ')</div>';
 
         if (!displayData || displayData.length === 0) {
           page1Content += '<div style="text-align: center; color: #64748b; padding: 15px; font-size: 11px;">Tidak ada riwayat presensi pada periode ini.</div>';
@@ -1554,8 +1554,8 @@ function downloadRekapPdf() {
         page1Content += ttdHtml;
         pagesHtmlList.push(page1Content);
       } else {
-        var firstChunk = displayData.slice(0, 8);
-        var remainingRows = displayData.slice(8);
+        var firstChunk = displayData.slice(0, 10);
+        var remainingRows = displayData.slice(10);
         var remainingDetailPages = Math.ceil(remainingRows.length / CHUNK_SIZE);
         var totalSinglePages = 1 + remainingDetailPages;
 
@@ -1565,14 +1565,14 @@ function downloadRekapPdf() {
         }
 
         var page1Content = kopSuratHtml +
-          '<div class="judul-laporan" style="text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px 0; color: #0f172a;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
-          '<div class="sub-judul" style="text-align: center; font-size: 11px; font-weight: 600; color: #065f46; margin-bottom: 2px;">' + subJudul + '</div>' +
-          '<div class="sub-periode" style="text-align: center; font-size: 11px; font-weight: bold; color: #047857; margin-bottom: 3px;">' + labelPeriodeRekap + '</div>' +
-          '<div class="tgl-cetak" style="text-align: center; font-size: 10px; color: #64748b; margin-bottom: 12px;">Waktu Cetak: ' + tglCetak + '</div>' +
+          '<div class="judul-laporan" style="text-align: center; font-size: 12px; font-weight: bold; text-transform: uppercase; margin: 4px 0 2px 0; color: #0f172a;">LAPORAN REKAPITULASI PRESENSI KEHADIRAN</div>' +
+          '<div class="sub-judul" style="text-align: center; font-size: 10.5px; font-weight: 600; color: #065f46; margin-bottom: 2px;">' + subJudul + '</div>' +
+          '<div class="sub-periode" style="text-align: center; font-size: 10px; font-weight: bold; color: #047857; margin-bottom: 2px;">' + labelPeriodeRekap + '</div>' +
+          '<div class="tgl-cetak" style="text-align: center; font-size: 9px; color: #64748b; margin-bottom: 8px;">Waktu Cetak: ' + tglCetak + '</div>' +
           ringkasanBoxHtml +
-          '<div style="font-size: 11px; font-weight: bold; color: #065f46; margin-bottom: 6px; text-transform: uppercase;">Detail Riwayat Presensi (' + labelPeriodeRekap + ') - Halaman 1 dari ' + totalSinglePages + '</div>' +
+          '<div style="font-size: 10px; font-weight: bold; color: #065f46; margin-bottom: 4px; text-transform: uppercase;">Detail Riwayat Presensi (' + labelPeriodeRekap + ') - Halaman 1 dari ' + totalSinglePages + '</div>' +
           '<table>' + tableHeaderHtml + '<tbody>' + rowsFirstPage + '</tbody></table>' +
-          '<div style="text-align: right; font-size: 10px; color: #64748b; font-style: italic;">* Bersambung ke halaman berikutnya &rarr;</div>';
+          '<div style="text-align: right; font-size: 9px; color: #64748b; font-style: italic;">* Bersambung ke halaman berikutnya &rarr;</div>';
 
         pagesHtmlList.push(page1Content);
 
@@ -1583,13 +1583,13 @@ function downloadRekapPdf() {
 
           var chunkHtml = '';
           for (var rIdx = 0; rIdx < chunkRows.length; rIdx++) {
-            var globalNo = 8 + c * CHUNK_SIZE + rIdx + 1;
+            var globalNo = 10 + c * CHUNK_SIZE + rIdx + 1;
             chunkHtml += renderDetailRow(chunkRows[rIdx], globalNo);
           }
 
-          var pageDetailContent = '<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #065f46; padding-bottom: 4px; margin-bottom: 10px;">' +
-              '<span style="font-size: 11px; font-weight: bold; color: #065f46; text-transform: uppercase;">Detail Riwayat Presensi - Lanjutan</span>' +
-              '<span style="font-size: 10px; font-weight: 600; color: #64748b;">Halaman ' + currentPageNum + ' dari ' + totalSinglePages + '</span>' +
+          var pageDetailContent = '<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #065f46; padding-bottom: 4px; margin-bottom: 8px;">' +
+              '<span style="font-size: 10.5px; font-weight: bold; color: #065f46; text-transform: uppercase;">Detail Riwayat Presensi - Lanjutan</span>' +
+              '<span style="font-size: 9.5px; font-weight: 600; color: #64748b;">Halaman ' + currentPageNum + ' dari ' + totalSinglePages + '</span>' +
             '</div>' +
             '<table>' + tableHeaderHtml + '<tbody>' + chunkHtml + '</tbody></table>';
 
