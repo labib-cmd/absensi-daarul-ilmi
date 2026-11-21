@@ -1603,8 +1603,8 @@ function downloadRekapPdf() {
 
     var fullPagesWrappedHtml = pagesHtmlList.map(function(pageContent, idx) {
       var isLast = (idx === pagesHtmlList.length - 1);
-      var pageBreakHtml = isLast ? '' : '<div class="html2pdf__page-break" style="page-break-before: always; break-before: page; height: 0; margin: 0; padding: 0;"></div>';
-      return '<div class="pdf-page" style="width: 1060px; min-width: 1060px; max-width: 1060px; box-sizing: border-box; padding: 10px 14px; background: #ffffff; color: #1e293b; page-break-inside: avoid; break-inside: avoid;' + (isLast ? '' : ' page-break-after: always; break-after: page;') + '">' +
+      var pageBreakHtml = isLast ? '' : '<div class="html2pdf__page-break"></div>';
+      return '<div class="pdf-page" style="width: 1060px; min-width: 1060px; max-width: 1060px; box-sizing: border-box; padding: 10px 14px; background: #ffffff; color: #1e293b; page-break-inside: avoid; break-inside: avoid;">' +
         pageContent +
       '</div>' + pageBreakHtml;
     }).join('');
@@ -1666,64 +1666,20 @@ function downloadRekapPdf() {
           scale: 1.5,
           useCORS: true,
           allowTaint: true,
-          imageTimeout: 15000,
           logging: false,
           scrollX: 0,
           scrollY: 0,
           windowWidth: 1080
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak: { mode: ['css', 'legacy'] }
+        pagebreak: { mode: ['legacy'] }
       };
 
-      var container = document.createElement('div');
-      container.id = 'rekapPdfTempRender';
-      container.style.position = 'fixed';
-      container.style.left = '0';
-      container.style.top = '0';
-      container.style.width = '1060px';
-      container.style.zIndex = '-9999';
-      container.style.opacity = '1';
-      container.style.pointerEvents = 'none';
-      container.style.background = '#ffffff';
-      container.innerHTML = fullHtmlToRender;
-      document.body.appendChild(container);
-
-      // Pastikan seluruh gambar (terutama Logo Resmi) telah di-decode oleh engine browser
-      var imgs = container.querySelectorAll('img');
-      var decodePromises = [];
-      imgs.forEach(function(img) {
-        if (img.decode) {
-          decodePromises.push(img.decode().catch(function() {}));
-        } else if (!img.complete) {
-          decodePromises.push(new Promise(function(resolve) {
-            img.onload = resolve;
-            img.onerror = resolve;
-          }));
-        }
-      });
-
-      Promise.all(decodePromises).then(function() {
-        setTimeout(function() {
-          html2pdf().set(opt).from(container).save().then(function() {
-            if (container.parentNode) container.parentNode.removeChild(container);
-            showNotif('Unduh Berhasil', 'Berkas PDF (' + namaFileDownload + '.pdf) berhasil diunduh ke folder Downloads Anda.', true);
-          }).catch(function(err) {
-            console.error('html2pdf fallback to print:', err);
-            if (container.parentNode) container.parentNode.removeChild(container);
-            fallbackPrintWindow(htmlDoc);
-          });
-        }, 350);
-      }).catch(function() {
-        setTimeout(function() {
-          html2pdf().set(opt).from(container).save().then(function() {
-            if (container.parentNode) container.parentNode.removeChild(container);
-            showNotif('Unduh Berhasil', 'Berkas PDF (' + namaFileDownload + '.pdf) berhasil diunduh ke folder Downloads Anda.', true);
-          }).catch(function() {
-            if (container.parentNode) container.parentNode.removeChild(container);
-            fallbackPrintWindow(htmlDoc);
-          });
-        }, 350);
+      html2pdf().set(opt).from(fullHtmlToRender).save().then(function() {
+        showNotif('Unduh Berhasil', 'Berkas PDF (' + namaFileDownload + '.pdf) berhasil diunduh ke folder Downloads Anda.', true);
+      }).catch(function(err) {
+        console.error('html2pdf fallback to print:', err);
+        fallbackPrintWindow(htmlDoc);
       });
     } else {
       fallbackPrintWindow(htmlDoc);

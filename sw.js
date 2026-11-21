@@ -1,5 +1,5 @@
 // Service Worker untuk PWA Presensi SMA Islam Daarul Ilmi Depok
-var CACHE_NAME = 'daarulilmi-presensi-v5.0';
+var CACHE_NAME = 'daarulilmi-presensi-v5.1';
 
 self.addEventListener('install', function(e) {
   self.skipWaiting();
