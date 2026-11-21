@@ -1429,7 +1429,7 @@ function downloadRekapPdf() {
       '<table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 4px; background: transparent;">' +
         '<tr style="border: none; background: transparent;">' +
           '<td style="width: 95px; min-width: 95px; max-width: 95px; border: none; padding: 0 10px 0 0; vertical-align: middle; text-align: center;">' +
-            '<img src="' + logoImgSrc + '" alt="Logo SMA Islam Daarul Ilmi Depok" style="width: 82px; height: 82px; object-fit: contain; display: block; margin: 0 auto;">' +
+            '<img src="' + logoImgSrc + '" width="82" height="82" alt="Logo SMA Islam Daarul Ilmi Depok" style="width: 82px; height: 82px; object-fit: contain; display: block; margin: 0 auto;">' +
           '</td>' +
           '<td style="border: none; padding: 0; vertical-align: middle; text-align: center; font-family: \'Times New Roman\', Times, serif; color: #000000;">' +
             '<div style="font-size: 16px; font-weight: bold; letter-spacing: 0.8px; line-height: 1.25; text-transform: uppercase;">SEKOLAH MENENGAH ATAS (SMA)</div>' +
@@ -1665,6 +1665,8 @@ function downloadRekapPdf() {
         html2canvas: {
           scale: 1.5,
           useCORS: true,
+          allowTaint: true,
+          imageTimeout: 15000,
           logging: false,
           scrollX: 0,
           scrollY: 0,
@@ -1676,13 +1678,14 @@ function downloadRekapPdf() {
 
       var container = document.createElement('div');
       container.id = 'rekapPdfTempRender';
-      container.style.position = 'absolute';
+      container.style.position = 'fixed';
       container.style.left = '0';
       container.style.top = '0';
       container.style.width = '1060px';
       container.style.zIndex = '-9999';
-      container.style.opacity = '0.01';
+      container.style.opacity = '1';
       container.style.pointerEvents = 'none';
+      container.style.background = '#ffffff';
       container.innerHTML = fullHtmlToRender;
       document.body.appendChild(container);
 
@@ -1701,26 +1704,26 @@ function downloadRekapPdf() {
       });
 
       Promise.all(decodePromises).then(function() {
-        requestAnimationFrame(function() {
-          requestAnimationFrame(function() {
-            html2pdf().set(opt).from(container).save().then(function() {
-              if (container.parentNode) container.parentNode.removeChild(container);
-              showNotif('Unduh Berhasil', 'Berkas PDF (' + namaFileDownload + '.pdf) berhasil diunduh ke folder Downloads Anda.', true);
-            }).catch(function(err) {
-              console.error('html2pdf fallback to print:', err);
-              if (container.parentNode) container.parentNode.removeChild(container);
-              fallbackPrintWindow(htmlDoc);
-            });
+        setTimeout(function() {
+          html2pdf().set(opt).from(container).save().then(function() {
+            if (container.parentNode) container.parentNode.removeChild(container);
+            showNotif('Unduh Berhasil', 'Berkas PDF (' + namaFileDownload + '.pdf) berhasil diunduh ke folder Downloads Anda.', true);
+          }).catch(function(err) {
+            console.error('html2pdf fallback to print:', err);
+            if (container.parentNode) container.parentNode.removeChild(container);
+            fallbackPrintWindow(htmlDoc);
           });
-        });
+        }, 350);
       }).catch(function() {
-        html2pdf().set(opt).from(container).save().then(function() {
-          if (container.parentNode) container.parentNode.removeChild(container);
-          showNotif('Unduh Berhasil', 'Berkas PDF (' + namaFileDownload + '.pdf) berhasil diunduh ke folder Downloads Anda.', true);
-        }).catch(function() {
-          if (container.parentNode) container.parentNode.removeChild(container);
-          fallbackPrintWindow(htmlDoc);
-        });
+        setTimeout(function() {
+          html2pdf().set(opt).from(container).save().then(function() {
+            if (container.parentNode) container.parentNode.removeChild(container);
+            showNotif('Unduh Berhasil', 'Berkas PDF (' + namaFileDownload + '.pdf) berhasil diunduh ke folder Downloads Anda.', true);
+          }).catch(function() {
+            if (container.parentNode) container.parentNode.removeChild(container);
+            fallbackPrintWindow(htmlDoc);
+          });
+        }, 350);
       });
     } else {
       fallbackPrintWindow(htmlDoc);

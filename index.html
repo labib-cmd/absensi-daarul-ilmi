@@ -313,18 +313,6 @@
 
           <!-- PANEL 2: REKAP DATA -->
           <div id="panelRekap" class="hidden space-y-3">
-            <!-- KOP SURAT RESMI PREVIEW -->
-            <div class="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs flex items-center space-x-3">
-              <div class="w-13 h-13 p-1 rounded-xl border border-slate-100 flex items-center justify-center flex-shrink-0 bg-white shadow-2xs">
-                <img src="img/logo.jpg" alt="Logo SMA Islam Daarul Ilmi Depok" class="w-full h-full object-contain">
-              </div>
-              <div class="flex-1 text-center font-serif text-slate-900 pr-1">
-                <div class="text-[11px] font-bold tracking-tight">SEKOLAH MENENGAH ATAS (SMA)</div>
-                <div class="text-xs font-black tracking-wide text-emerald-800">ISLAM DAARUL ILMI DEPOK</div>
-                <div class="text-[9px] text-slate-500 font-sans mt-0.5 leading-tight">Kp. Parung Serab, Sukmajaya, Kota Depok, Jawa Barat 16412</div>
-              </div>
-            </div>
-
             <div class="flex flex-wrap items-center gap-2">
               <select id="filterGuru" onchange="loadAdminData()"
                 class="text-xs p-2 input-pill bg-white border border-slate-200 outline-none flex-1 min-w-[130px] font-semibold text-slate-700">
@@ -850,16 +838,16 @@
   </div>
 
   <!-- SCRIPTS STANDAR TERPISAH (CLEAN & MODULAR) -->
-  <script src="js/logo.js?v=4.9"></script>
-  <script src="js/api.js?v=4.9"></script>
-  <script src="js/auth.js?v=4.9"></script>
-  <script src="js/presensi.js?v=4.9"></script>
-  <script src="js/admin.js?v=4.9"></script>
-  <script src="js/app.js?v=4.9"></script>
+  <script src="js/logo.js?v=5.0"></script>
+  <script src="js/api.js?v=5.0"></script>
+  <script src="js/auth.js?v=5.0"></script>
+  <script src="js/presensi.js?v=5.0"></script>
+  <script src="js/admin.js?v=5.0"></script>
+  <script src="js/app.js?v=5.0"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js?v=4.9').catch(function (err) {
+        navigator.serviceWorker.register('sw.js?v=5.0').catch(function (err) {
           console.log('SW register error:', err);
         });
       });
