@@ -613,11 +613,13 @@ function getGPSLocation() {
     evaluateGPSDistance();
   }
 
-  // Tahap 1: Coba ambil lokasi akurasi tinggi (izinkan cache 60 detik agar instan jika Google Maps baru dibuka)
+  // Mulai pantauan background langsung agar begitu hardware GPS mengunci, status langsung otomatis terupdate
+  startGpsWatcher();
+
+  // Tahap 1: Coba ambil lokasi akurasi tinggi (toleransi cache 5 menit agar instan jika Google Maps baru dibuka)
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       onGpsSuccess(pos);
-      startGpsWatcher();
     },
     function(err) {
       // Jika izin lokasi ditolak secara tegas oleh user/OS
@@ -646,7 +648,6 @@ function getGPSLocation() {
       navigator.geolocation.getCurrentPosition(
         function(pos) {
           onGpsSuccess(pos);
-          startGpsWatcher();
         },
         function(fallbackErr) {
           currentLat = null;
@@ -661,12 +662,11 @@ function getGPSLocation() {
           }
           if (window.lucide) lucide.createIcons();
           updateSubmitButtonState();
-          startGpsWatcher();
         },
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 }
+        { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 }
       );
     },
-    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
   );
 }
 
@@ -681,7 +681,7 @@ function startGpsWatcher() {
         evaluateGPSDistance();
       },
       function() {},
-      { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 15000 }
     );
   } catch (e) {}
 }
