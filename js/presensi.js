@@ -613,35 +613,26 @@ function getGPSLocation() {
     evaluateGPSDistance();
   }
 
-  // Mulai pantauan background langsung agar begitu hardware GPS mengunci, status langsung otomatis terupdate
+  // Mulai pantauan background langsung agar jika satelit mengunci, koordinat otomatis disempurnakan
   startGpsWatcher();
 
-  // Tahap 1: Coba ambil lokasi akurasi tinggi (toleransi cache 5 menit agar instan jika Google Maps baru dibuka)
+  // TAHAP 1 (INSTANT CACHE-FIRST):
+  // Coba ambil posisi cache terakhir yang tersimpan di HP dalam 10 menit terakhir.
+  // Ini merespons super cepat (< 100ms) tanpa menunggu hardware satelit memanas dari nol.
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       onGpsSuccess(pos);
     },
-    function(err) {
-      // Jika izin lokasi ditolak secara tegas oleh user/OS
-      if (err.code === 1) { // PERMISSION_DENIED
-        currentLat = null;
-        currentLong = null;
-        gpsStatusValid = false;
-        if (txt) txt.innerText = 'Izin Lokasi Ditolak';
-        if (badge) badge.className = 'absolute bottom-2 left-2 bg-rose-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-rose-400/50 z-20';
-        if (alertBox) {
-          alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between text-left border bg-rose-50 border-rose-200 text-rose-800';
-          alertBox.innerHTML = '<div class="flex items-center space-x-2"><i data-lucide="map-pin-off" class="w-4 h-4 text-rose-600 flex-shrink-0"></i><span><b>Izin Lokasi Ditolak!</b> Aktifkan izin lokasi di info aplikasi HP.</span></div>' +
-            '<button type="button" onclick="getGPSLocation()" class="ml-2 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] flex-shrink-0 shadow-sm transition active:scale-95">Coba Lagi</button>';
-        }
-        if (window.lucide) lucide.createIcons();
-        updateSubmitButtonState();
+    function(cacheErr) {
+      // Jika izin lokasi ditolak secara tegas di browser (Code 1 = PERMISSION_DENIED)
+      if (cacheErr && cacheErr.code === 1) {
+        showGpsDiagnostics(cacheErr);
         return;
       }
 
-      // Tahap 2: Jika timeout atau satelit terhalang di dalam ruangan, otomatis fallback ke Jaringan / WiFi / Seluler
-      if (alertBox) {
-        alertBox.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin text-amber-600 flex-shrink-0"></i><span>Satelit GPS terhalang, mengalihkan ke sinyal lokasi jaringan/WiFi...</span>';
+      // TAHAP 2: Jika cache belum ada, aktifkan sensor satelit GPS presisi tinggi (timeout 9 detik)
+      if (alertBox && currentLat === null) {
+        alertBox.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin text-blue-600 flex-shrink-0"></i><span>Menghubungkan ke satelit GPS presisi tinggi...</span>';
         if (window.lucide) lucide.createIcons();
       }
 
@@ -649,25 +640,101 @@ function getGPSLocation() {
         function(pos) {
           onGpsSuccess(pos);
         },
-        function(fallbackErr) {
-          currentLat = null;
-          currentLong = null;
-          gpsStatusValid = false;
-          if (txt) txt.innerText = 'Sinyal GPS Lemah';
-          if (badge) badge.className = 'absolute bottom-2 left-2 bg-amber-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-amber-400/50 z-20';
-          if (alertBox) {
-            alertBox.className = 'p-2.5 rounded-xl text-[11px] font-semibold flex items-center justify-between text-left border bg-amber-50 border-amber-200 text-amber-800';
-            alertBox.innerHTML = '<div class="flex items-center space-x-2"><i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 flex-shrink-0"></i><span><b>Sinyal GPS Lemah!</b> Coba buka Google Maps sebentar lalu klik tombol Ulangi.</span></div>' +
-              '<button type="button" onclick="getGPSLocation()" class="ml-2 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[10px] flex-shrink-0 shadow-sm transition active:scale-95">Ulangi GPS</button>';
+        function(highAccErr) {
+          if (highAccErr && highAccErr.code === 1) {
+            showGpsDiagnostics(highAccErr);
+            return;
           }
-          if (window.lucide) lucide.createIcons();
-          updateSubmitButtonState();
+
+          // TAHAP 3 (FALLBACK NETWORK / SELULER):
+          // Jika satelit GPS terhalang (di gedung/parkiran), coba baca via BTS seluler / Wi-Fi
+          if (alertBox && currentLat === null) {
+            alertBox.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin text-amber-600 flex-shrink-0"></i><span>Satelit lambat, beralih ke sinyal lokasi jaringan/WiFi...</span>';
+            if (window.lucide) lucide.createIcons();
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            function(pos) {
+              onGpsSuccess(pos);
+            },
+            function(finalErr) {
+              showGpsDiagnostics(finalErr);
+            },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+          );
         },
-        { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 }
+        { enableHighAccuracy: true, timeout: 9000, maximumAge: 300000 }
       );
     },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    { enableHighAccuracy: false, timeout: 2500, maximumAge: 600000 }
   );
+}
+
+function showGpsDiagnostics(err) {
+  // Jika koordinat sebenarnya sudah berhasil didapat oleh watcher/cache, jangan ditimpa dengan pesan eror
+  if (currentLat !== null && currentLong !== null) return;
+
+  var txt = document.getElementById('gpsText');
+  var badge = document.getElementById('gpsBadge');
+  var alertBox = document.getElementById('gpsStatusAlert');
+
+  currentLat = null;
+  currentLong = null;
+  gpsStatusValid = false;
+
+  var code = err ? err.code : 0;
+
+  if (code === 1) { // PERMISSION_DENIED
+    if (txt) txt.innerText = 'Izin Lokasi Ditolak';
+    if (badge) badge.className = 'absolute bottom-2 left-2 bg-rose-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-rose-400/50 z-20';
+    if (alertBox) {
+      alertBox.className = 'p-3 rounded-xl text-[11px] font-semibold text-left border bg-rose-50 border-rose-200 text-rose-800 space-y-2';
+      alertBox.innerHTML = 
+        '<div class="flex items-center space-x-2">' +
+          '<i data-lucide="map-pin-off" class="w-4 h-4 text-rose-600 flex-shrink-0"></i>' +
+          '<span><b>Izin Lokasi di Chrome Diblokir!</b></span>' +
+        '</div>' +
+        '<div class="text-[10px] text-slate-600 leading-relaxed">' +
+          'Klik ikon <b>gembok / setelan</b> di sebelah kiri link website atas &gt; pilih <b>Izin (Permissions)</b> &gt; ubah <b>Lokasi</b> menjadi <b>Izinkan</b>.' +
+        '</div>' +
+        '<div class="pt-1">' +
+          '<button type="button" onclick="getGPSLocation()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] shadow-sm transition active:scale-95 inline-flex items-center">' +
+            '<i data-lucide="rotate-cw" class="w-3 h-3 mr-1"></i><span>Coba Lagi</span>' +
+          '</button>' +
+        '</div>';
+    }
+  } else {
+    // POSITION_UNAVAILABLE (2) atau TIMEOUT (3)
+    if (txt) txt.innerText = 'Sinyal GPS Lemah';
+    if (badge) badge.className = 'absolute bottom-2 left-2 bg-amber-700/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white flex items-center space-x-1 border border-amber-400/50 z-20';
+    if (alertBox) {
+      alertBox.className = 'p-3 rounded-xl text-[11px] font-semibold text-left border bg-amber-50 border-amber-200 text-amber-800 space-y-2';
+      alertBox.innerHTML = 
+        '<div class="flex items-center justify-between">' +
+          '<div class="flex items-center space-x-2">' +
+            '<i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>' +
+            '<span><b>Sinyal GPS HP Belum Terkunci</b></span>' +
+          '</div>' +
+          '<span class="text-[9px] text-amber-700 font-semibold px-2 py-0.5 bg-amber-100/80 rounded-full">Kode: ' + (code === 3 ? 'Timeout' : 'Offline') + '</span>' +
+        '</div>' +
+        '<div class="text-[10px] text-slate-700 leading-snug space-y-1">' +
+          '<div>💡 <b>Penyebab &amp; Solusi Cepat:</b></div>' +
+          '<div>1. Jika baterai di bawah 15% (lemah), <b>matikan Mode Hemat Daya</b> di HP agar sensor GPS aktif.</div>' +
+          '<div>2. Buka <b>Google Maps</b> sebentar hingga titik biru lokasi muncul, lalu klik tombol ulangi di bawah:</div>' +
+        '</div>' +
+        '<div class="flex items-center space-x-2 pt-1">' +
+          '<button type="button" onclick="getGPSLocation()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[10px] shadow-sm transition active:scale-95 inline-flex items-center">' +
+            '<i data-lucide="rotate-cw" class="w-3 h-3 mr-1"></i><span>Ulangi Kunci GPS</span>' +
+          '</button>' +
+          '<a href="https://maps.google.com" target="_blank" class="px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 font-bold rounded-lg text-[10px] inline-flex items-center transition">' +
+            '<i data-lucide="navigation" class="w-3 h-3 mr-1"></i><span>Pancing Google Maps</span>' +
+          '</a>' +
+        '</div>';
+    }
+  }
+
+  if (window.lucide) lucide.createIcons();
+  updateSubmitButtonState();
 }
 
 function startGpsWatcher() {
