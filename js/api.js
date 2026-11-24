@@ -650,14 +650,85 @@ var API = {
     return new Promise(function(resolve) {
       var sb = getSupabase();
       if (sb) {
-        sb.from('absensi').update({
-          jam_masuk: payload.jamMasuk,
-          status_masuk: payload.statusMasuk,
-          jam_pulang: payload.jamPulang,
-          status_pulang: payload.statusPulang
-        }).eq('id_absen', payload.idAbsen).then(function(res) {
-          if (res.error) resolve({ success: false, message: res.error.message });
-          else resolve({ success: true, message: 'Jam presensi ' + payload.namaGuru + ' berhasil diperbarui.' });
+        var today = getTodayFormatted();
+        var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        var d = new Date();
+        var dayName = days[d.getDay()];
+
+        // Ambil pengaturan jam standar sekolah
+        sb.from('settings').select('*').then(function(setRes) {
+          var settingsObj = {};
+          (setRes.data || []).forEach(function(s) { settingsObj[s.key] = s.value; });
+          var stdMasuk = settingsObj.JAM_MASUK_STD || '07:00';
+          var stdPulang = settingsObj.JAM_PULANG_STD || '16:00';
+
+          // Format & kalkulasi status masuk
+          var statusMasuk = null;
+          var formattedJamMasuk = null;
+          if (payload.jamMasuk) {
+            var jmParts = payload.jamMasuk.split(':');
+            var jmHHMM = jmParts[0].padStart(2, '0') + ':' + (jmParts[1] || '00').padStart(2, '0');
+            statusMasuk = (jmHHMM <= stdMasuk) ? 'Tepat Waktu' : 'Terlambat';
+            formattedJamMasuk = jmParts.length === 2 ? payload.jamMasuk + ':00' : payload.jamMasuk;
+          }
+
+          // Format & kalkulasi status pulang
+          var statusPulang = null;
+          var formattedJamPulang = null;
+          if (payload.jamPulang) {
+            var jpParts = payload.jamPulang.split(':');
+            var jpHHMM = jpParts[0].padStart(2, '0') + ':' + (jpParts[1] || '00').padStart(2, '0');
+            statusPulang = (jpHHMM >= stdPulang) ? 'Tepat Waktu' : 'Pulang Terlalu Cepat';
+            formattedJamPulang = jpParts.length === 2 ? payload.jamPulang + ':00' : payload.jamPulang;
+          }
+
+          // Periksa apakah guru sudah memiliki baris absensi hari ini di Supabase
+          sb.from('absensi').select('*').eq('id_user', payload.userId).eq('tanggal', today).limit(1).then(function(chk) {
+            var existing = (chk.data && chk.data.length > 0) ? chk.data[0] : null;
+
+            if (existing) {
+              // Jika sudah ada record hari ini -> lakukan UPDATE
+              var updateData = {};
+              if (formattedJamMasuk !== null) {
+                updateData.jam_masuk = formattedJamMasuk;
+                updateData.status_masuk = statusMasuk;
+              }
+              if (formattedJamPulang !== null) {
+                updateData.jam_pulang = formattedJamPulang;
+                updateData.status_pulang = statusPulang;
+              }
+              if (payload.namaGuru) {
+                updateData.nama_guru = payload.namaGuru;
+              }
+
+              sb.from('absensi').update(updateData).eq('id_absen', existing.id_absen).then(function(res) {
+                if (res.error) resolve({ success: false, message: res.error.message });
+                else resolve({ success: true, message: 'Jam presensi ' + payload.namaGuru + ' berhasil diperbarui.' });
+              });
+            } else {
+              // Jika guru BELUM ABSEN hari ini -> buat record baru (INSERT)
+              var insertData = {
+                id_absen: 'ABS-' + Date.now(),
+                id_user: payload.userId,
+                nama_guru: payload.namaGuru,
+                tanggal: today,
+                hari: dayName,
+                jam_masuk: formattedJamMasuk,
+                status_masuk: statusMasuk,
+                jam_pulang: formattedJamPulang,
+                status_pulang: statusPulang,
+                alasan_masuk: 'Disesuaikan oleh Admin',
+                alasan_pulang: 'Disesuaikan oleh Admin'
+              };
+
+              sb.from('absensi').insert([insertData]).then(function(res) {
+                if (res.error) resolve({ success: false, message: res.error.message });
+                else resolve({ success: true, message: 'Presensi ' + payload.namaGuru + ' berhasil disimpan oleh Admin.' });
+              });
+            }
+          });
+        }).catch(function(err) {
+          resolve({ success: false, message: err.message });
         });
         return;
       }

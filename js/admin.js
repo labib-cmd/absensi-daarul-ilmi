@@ -394,18 +394,33 @@ function submitEditJamGuru(e) {
   var jamMasuk = document.getElementById('editInputJamMasuk').value.trim();
   var jamPulang = document.getElementById('editInputJamPulang').value.trim();
 
+  if (!jamMasuk && !jamPulang) {
+    showNotif('Isi Jam Presensi', 'Mohon isi setidaknya Jam Datang atau Jam Pulang sebelum menyimpan.', false);
+    return;
+  }
+
+  var btn = document.getElementById('btnSubmitEditJam');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>Menyimpan...</span>';
+  }
+
   var payload = {
     userId: activeEditGuru.id_user,
     namaGuru: activeEditGuru.nama_guru,
     jamMasuk: jamMasuk,
-    jamPulang: jamPulang
+    jamPulang: jamPulang,
+    idAbsen: (activeEditGuru.detail && activeEditGuru.detail.id_absen) ? activeEditGuru.detail.id_absen : null
   };
 
-  closeEditJamGuruModal();
-
   API.simpanEditJamGuru(payload).then(function(res) {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>Simpan Jam</span>';
+    }
+    closeEditJamGuruModal();
     if (res.success) {
-      showNotif('Berhasil Diperbarui', res.message, true);
+      showNotif('Berhasil Disimpan', res.message, true);
       loadAdminData();
     } else {
       showNotif('Gagal Memperbarui', res.message, false);
